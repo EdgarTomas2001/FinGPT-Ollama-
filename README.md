@@ -1,7 +1,19 @@
+
 # 🤖 FinGPT Trading System
+
+> _"Der Markt kann länger irrational bleiben, als du liquide bleiben kannst."_ 
+John Maynard Keynes
+
 
 Ein vollautomatisches, KI-gestütztes Trading-System für **MetaTrader 5 (MT5)**, entwickelt in **Python**.  
 FinGPT kombiniert klassische Indikatoren (RSI, MACD, Support/Resistance) mit **Ollama LLMs** für smarte Signale, integriert Risk-Management und bietet eine modulare Architektur mit übersichtlichem Menü.
+
+
+![Visual Studio](https://img.shields.io/badge/Visual%20Studio-5C2D91.svg?style=for-the-badge&logo=visual-studio&logoColor=white) ![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54) ![Windows 11](https://img.shields.io/badge/Windows%2011-%230079d5.svg?style=for-the-badge&logo=Windows%2011&logoColor=white) ![Trello](https://img.shields.io/badge/Trello-%23026AA7.svg?style=for-the-badge&logo=Trello&logoColor=white) ![Discord](https://img.shields.io/badge/Discord-%235865F2.svg?style=for-the-badge&logo=discord&logoColor=white)
+
+
+
+
 
 ---
 
@@ -53,6 +65,9 @@ FinGPT kombiniert klassische Indikatoren (RSI, MACD, Support/Resistance) mit **O
 - Pakete:
   ```bash
   pip install MetaTrader5 numpy requests
+***
+P
+
 
 <img width="972" height="840" alt="image" src="https://github.com/user-attachments/assets/a41749bc-52f1-4b93-b002-69ef90c0425d" />
 <img width="827" height="911" alt="image" src="https://github.com/user-attachments/assets/c4245e66-2036-4e70-88c2-bf81b4ca85d6" />
