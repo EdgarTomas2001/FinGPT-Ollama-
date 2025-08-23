@@ -67,7 +67,6 @@ FinGPT kombiniert klassische Indikatoren (RSI, MACD, Support/Resistance) mit **O
   ```bash
   pip install MetaTrader5 numpy requests
 ***
-P
 
 
 <img width="972" height="840" alt="image" src="https://github.com/user-attachments/assets/a41749bc-52f1-4b93-b002-69ef90c0425d" />
