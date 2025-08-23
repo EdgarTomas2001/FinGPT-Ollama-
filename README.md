@@ -1,6 +1,8 @@
 
 
-# 🤖 FinGPT Trading System | Ollama & MetaTrader5
+# 🤖 FinGPT Trading System 
+
+# Ollama & MetaTrader5
 
 > _"Der Markt kann länger irrational bleiben, als du liquide bleiben kannst."_ 
 John Maynard Keynes
