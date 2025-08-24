@@ -1,0 +1,173 @@
+# ⚠️ DISCLAIMER - WICHTIGE RECHTLICHE HINWEISE
+
+## 🚨 TRADING-RISIKO WARNUNG
+
+**DIESES TRADING-SYSTEM IST EIN EXPERIMENTELLES SOFTWARE-PROJEKT ZU BILDUNGSZWECKEN. DER HANDEL MIT DEVISEN, CFDS UND ANDEREN FINANZINSTRUMENTEN BIRGT ERHEBLICHE RISIKEN UND IST NICHT FÜR ALLE ANLEGER GEEIGNET.**
+
+---
+
+## 📋 KEINE GEWINNGARANTIE
+
+**ES WERDEN KEINERLEI GEWINNE ODER ERTRÄGE GARANTIERT.** Die Verwendung dieses Systems kann zu:
+- Vollständigem Kapitalverlust
+- Erheblichen finanziellen Verlusten
+- Margin Calls und Zwangsschließungen
+- Unvorhersehbaren Marktbewegungen
+
+**Vergangene Ergebnisse sind keine Garantie für zukünftige Performance.**
+
+---
+
+## 🛡️ HAFTUNGSAUSSCHLUSS
+
+### Entwickler-Haftung
+Der/Die Entwickler dieses Systems übernehmen **KEINERLEI HAFTUNG** für:
+- Finanzielle Verluste jeglicher Art
+- Direkte oder indirekte Schäden
+- Entgangene Gewinne
+- Software-Fehler oder -Ausfälle
+- Falsche Handelssignale
+- Systemauszeiten oder technische Probleme
+
+### Nutzung auf eigene Verantwortung
+**SIE NUTZEN DIESES SYSTEM VOLLSTÄNDIG AUF EIGENE VERANTWORTUNG UND AUF EIGENES RISIKO.**
+
+---
+
+## ⚖️ RECHTLICHE BESTIMMUNGEN
+
+### Keine Anlageberatung
+- Dieses System stellt **KEINE Anlageberatung** dar
+- Keine Empfehlungen für spezifische Investments
+- Keine personalisierten Finanzdienstleistungen
+- Rein technisches/algorithmisches Tool
+
+### Regulatorische Hinweise
+- Das System wurde nicht von Finanzaufsichtsbehörden geprüft
+- Keine Lizenz als Anlageberater oder Vermögensverwalter
+- Nutzer sind selbst für die Einhaltung lokaler Gesetze verantwortlich
+- Bei regulierten Aktivitäten professionelle Beratung einholen
+
+### Disclaimer für verschiedene Rechtsräume
+- **EU**: Dieses System fällt nicht unter MiFID II Bestimmungen
+- **USA**: Nicht als Investment Advisor registriert (SEC/CFTC)
+- **Deutschland**: Kein lizenzierter Finanzdienstleister nach KWG/WpIG
+- **Schweiz**: Nicht FINMA-reguliert
+
+---
+
+## 🔧 TECHNISCHE HAFTUNGSAUSSCHLÜSSE
+
+### Software-Qualität
+- **ALPHA/BETA SOFTWARE** - Kann Fehler enthalten
+- Keine Garantie für Funktionalität oder Verfügbarkeit
+- Updates können jederzeit Änderungen bringen
+- Kompatibilitätsprobleme möglich
+
+### Drittanbieter-Abhängigkeiten
+Das System nutzt externe Services:
+- **MetaTrader 5**: Abhängig von MT5 Stabilität
+- **Ollama/KI-Modelle**: Können fehlerhafte Analysen liefern
+- **Broker-Verbindungen**: Außerhalb unserer Kontrolle
+
+### Datengenauigkeit
+- Marktdaten können verzögert oder fehlerhaft sein
+- Keine Garantie für Echtzeit-Genauigkeit
+- Technische Indikatoren sind mathematische Berechnungen ohne Gewähr
+
+---
+
+## 💰 FINANZIELLE WARNUNGEN
+
+### Kapitalanforderungen
+- **VERWENDEN SIE NUR RISIKOKAPITAL**
+- Investieren Sie niemals Geld, das Sie nicht verlieren können
+- Berücksichtigen Sie Ihre finanzielle Situation
+- Setzen Sie Stop-Loss Limits
+
+### Leverage-Risiken
+- Gehebelte Produkte können Verluste vervielfachen
+- Bereits kleine Marktbewegungen können große Auswirkungen haben
+- Margin Requirements können sich ändern
+- Übernachtfinanzierungskosten beachten
+
+### Marktrisiken
+- Währungskurse sind volatil und unvorhersagbar
+- Politische und wirtschaftliche Ereignisse beeinflussen Märkte
+- Liquiditätsrisiken in volatilen Phasen
+- Slippage und Spread-Kosten
+
+---
+
+## 🎓 BILDUNGS- UND TESTZWECKE
+
+### Empfohlene Nutzung
+- **Zuerst im Demo-Modus testen**
+- System verstehen bevor Live-Trading
+- Mit kleinen Beträgen beginnen
+- Kontinuierliche Überwachung erforderlich
+
+### Lernziele
+Dieses System dient der Bildung in:
+- Algorithmic Trading Concepts
+- Risk Management Techniken
+- Technischer Analyse
+- Software-Entwicklung für Trading
+
+---
+
+## 📞 PROFESSIONELLE BERATUNG
+
+**BEVOR SIE MIT ECHTEM GELD HANDELN:**
+- Konsultieren Sie einen lizenzierten Finanzberater
+- Verstehen Sie Ihre lokalen Steuergesetze
+- Prüfen Sie regulatorische Anforderungen
+- Bewerten Sie Ihre Risikotoleranz
+
+---
+
+## 📋 NUTZUNGSBESTIMMUNGEN
+
+### Akzeptanz
+Durch die Nutzung dieses Systems bestätigen Sie:
+- ✅ Diese Disclaimers gelesen und verstanden zu haben
+- ✅ Die Risiken des Devisenhandels zu verstehen
+- ✅ Eigene Verantwortung für alle Trading-Entscheidungen zu übernehmen
+- ✅ Keine Haftungsansprüche gegen die Entwickler zu stellen
+
+### Verbotene Nutzung
+Das System darf **NICHT** verwendet werden für:
+- Kommerzielle Finanzdienstleistungen ohne Lizenz
+- Verwaltung fremder Gelder ohne Berechtigung
+- Garantierte Renditeversprechen an Dritte
+- Verletzung lokaler Finanzgesetze
+
+---
+
+## 🔄 ÄNDERUNGEN UND UPDATES
+
+- Dieser Disclaimer kann jederzeit geändert werden
+- Nutzer sind für regelmäßige Überprüfung verantwortlich
+- Änderungen werden im Repository dokumentiert
+- Kontinuierliche Nutzung gilt als Akzeptanz von Änderungen
+
+---
+
+## 📧 KONTAKT UND SUPPORT
+
+**WICHTIG:** Wir bieten **KEINEN** Finanz- oder Anlageberatungsservice.
+
+Support nur für technische Fragen zum Code:
+- GitHub Issues für Bug-Reports
+- Dokumentation für grundlegende Fragen
+- Community-Forum für Diskussionen
+
+---
+
+**⚖️ RECHTLICHER HINWEIS:** Dieser Disclaimer ersetzt nicht die Beratung durch qualifizierte Rechts- oder Finanzexperten. Im Zweifelsfall konsultieren Sie einen Anwalt mit Spezialisierung auf Finanzrecht.
+
+---
+
+*Letzte Aktualisierung: 24.08.2025*
+
+**🔐 INDEM SIE DIESES SYSTEM NUTZEN, ERKLÄREN SIE SICH MIT ALLEN OBEN GENANNTEN BEDINGUNGEN EINVERSTANDEN.**
