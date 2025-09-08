@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 FinGPT mit Ollama + MetaTrader 5 Integration
 Vollautomatisches Trading mit KI und Partial Close + RSI
@@ -32,10 +32,13 @@ except ImportError:
 # Risk Manager Import
 from risk_manager import RiskManager
 
+# In Ihrer FinGPT.py Datei hinzufügen:
+from advanced_indicators import AdvancedIndicators, IndicatorIntegration
+
 class MT5FinGPT:
     def __init__(self):
         """Initialisiert das FinGPT System mit korrekter Reihenfolge"""
-        
+    
         # GRUNDLEGENDE EINSTELLUNGEN ZUERST
         self.ollama_url = "http://localhost:11434"
         self.available_models = []
@@ -47,15 +50,15 @@ class MT5FinGPT:
         self.auto_trading = False
         self.auto_trade_symbols = ["EURUSD"]
         self.analysis_interval = 300
-        
-        # Logging Setup - ZUERST!
+    
+        # LOGGING SETUP - MUSS ZUERST KOMMEN!
         self.setup_logging()
         self.log("INFO", "FinGPT System wird initialisiert...")
-        
+    
         # RISK MANAGER - NACH LOGGING!
         try:
             from risk_manager import RiskManager
-            self.risk_manager = RiskManager(logger=self.logger)  # DIESE ZEILE FEHLTE!
+            self.risk_manager = RiskManager(logger=self.logger)
             self.log("INFO", "Risk Manager erfolgreich initialisiert", "RISK")
         except ImportError as e:
             self.log("ERROR", f"Risk Manager Import Fehler: {e}", "RISK")
@@ -63,8 +66,26 @@ class MT5FinGPT:
         except Exception as e:
             self.log("ERROR", f"Risk Manager Initialisierung Fehler: {e}", "RISK")
             self.risk_manager = None
-        
-        #Timeframe Names
+    
+        # ERWEITERTE INDIKATOREN - NACH LOGGING!
+        try:
+            from advanced_indicators import AdvancedIndicators, IndicatorIntegration
+            self.advanced_indicators = AdvancedIndicators(logger=self.logger)
+            self.integration = IndicatorIntegration(self)
+            self.log("INFO", "✅ Erweiterte Indikatoren erfolgreich initialisiert", "INDICATORS")
+            self.has_extended_indicators = True
+        except ImportError as e:
+            self.log("WARNING", f"Erweiterte Indikatoren nicht verfügbar: {e}", "INDICATORS")
+            self.advanced_indicators = None
+            self.integration = None
+            self.has_extended_indicators = False
+        except Exception as e:
+            self.log("ERROR", f"Erweiterte Indikatoren Fehler: {e}", "INDICATORS")
+            self.advanced_indicators = None
+            self.integration = None
+            self.has_extended_indicators = False
+    
+        # TIMEFRAME NAMES
         self.timeframe_names = {
             mt5.TIMEFRAME_M1: "M1",
             mt5.TIMEFRAME_M5: "M5", 
@@ -74,65 +95,152 @@ class MT5FinGPT:
             mt5.TIMEFRAME_H4: "H4",
             mt5.TIMEFRAME_D1: "D1"
         }
-        
-        # Trading Companion Integration
+    
+        # TRADING COMPANION INTEGRATION
         self.companion_process = None
         self.companion_enabled = False
         self.auto_start_companion = False
-        
-        # RSI Settings
+    
+        # RSI SETTINGS
         self.rsi_period = 14
         self.rsi_timeframe = mt5.TIMEFRAME_M15 if MT5_AVAILABLE else None
         self.rsi_overbought = 70
         self.rsi_oversold = 30
-        
-        # Support/Resistance Settings
+    
+        # SUPPORT/RESISTANCE SETTINGS
         self.sr_lookback_period = 50
         self.sr_min_touches = 2
         self.sr_tolerance = 0.0002
         self.sr_strength_threshold = 3
-        
-        # MACD Settings
+    
+        # MACD SETTINGS
         self.macd_fast_period = 12
         self.macd_slow_period = 26
         self.macd_signal_period = 9
         self.macd_timeframe = mt5.TIMEFRAME_M15 if MT5_AVAILABLE else None
-        
-        # Multi-Timeframe Settings
+    
+        # MULTI-TIMEFRAME SETTINGS
         self.mtf_enabled = True
         self.trend_timeframe = mt5.TIMEFRAME_H1 if MT5_AVAILABLE else None
         self.entry_timeframe = mt5.TIMEFRAME_M15 if MT5_AVAILABLE else None
         self.trend_ema_period = 50
         self.trend_strength_threshold = 0.0010  # 10 Pips Mindest-Trendbewegung
         self.require_trend_confirmation = True
-        
-        # Partial Close Settings
+    
+        # PARTIAL CLOSE SETTINGS
         self.partial_close_enabled = True
         self.first_target_percent = 50
         self.second_target_percent = 25
         self.profit_target_1 = 1.5
         self.profit_target_2 = 3.0
-        
-        # UI Verbesserungen
+    
+        # UI VERBESSERUNGEN
         self.companion_output_queue = queue.Queue()
         self.ui_lock = threading.Lock()
         self.companion_silent_mode = False
         self.last_menu_display = 0
-        
-        # Trailing Stop Settings
+    
+        # TRAILING STOP SETTINGS
         self.trailing_stop_enabled = True
         self.trailing_stop_distance_pips = 20
         self.trailing_stop_step_pips = 5
         self.trailing_stop_start_profit_pips = 15
-        
-        # ABSCHLUSS
+    
+        # CURRENCY PAIRS CONFIGURATION
+        self.currency_pairs = {
+            "major": {
+                "name": "Majors (Hauptwährungspaare)",
+                "pairs": ["EURUSD", "GBPUSD", "USDJPY", "USDCHF", "AUDUSD", "USDCAD", "NZDUSD"],
+                "description": "Die 7 wichtigsten Forex-Paare mit höchster Liquidität"
+            },
+            "eur_cross": {
+                "name": "EUR Cross-Paare", 
+                "pairs": ["EURUSD", "EURGBP", "EURJPY", "EURCHF", "EURAUD", "EURCAD", "EURNZD"],
+                "description": "Euro-basierte Währungspaare"
+            },
+            "gbp_cross": {
+                "name": "GBP Cross-Paare",
+                "pairs": ["GBPUSD", "EURGBP", "GBPJPY", "GBPCHF", "GBPAUD", "GBPCAD", "GBPNZD"],
+                "description": "Pfund-basierte Währungspaare"
+            },
+            "jpy_cross": {
+                "name": "JPY Cross-Paare",
+                "pairs": ["USDJPY", "EURJPY", "GBPJPY", "AUDJPY", "CADJPY", "CHFJPY", "NZDJPY"],
+                "description": "Yen-basierte Währungspaare"
+            },
+            "commodity": {
+                "name": "Rohstoff-Währungen",
+                "pairs": ["AUDUSD", "NZDUSD", "USDCAD", "AUDCAD", "AUDNZD", "CADJPY", "NZDCAD"],
+                "description": "Währungen von rohstoffexportierenden Ländern"
+            },
+            "safe_haven": {
+                "name": "Safe Haven",
+                "pairs": ["USDCHF", "USDJPY", "CHFJPY", "XAUUSD", "XAGUSD"],
+                "description": "Sichere Häfen in unsicheren Zeiten"
+            },
+            "volatile": {
+                "name": "Volatile Paare",
+                "pairs": ["GBPJPY", "GBPAUD", "EURJPY", "AUDJPY", "GBPNZD", "EURNZD"],
+                "description": "Hochvolatile Paare für erfahrene Trader"
+            },
+            "conservative": {
+                "name": "Konservative Auswahl",
+                "pairs": ["EURUSD", "GBPUSD", "USDCHF"],
+                "description": "Stabile, gut vorhersagbare Paare"
+            }
+        }
+
+        # BENUTZERDEFINIERTE LISTEN
+        self.custom_pairs = {
+            "user_favorites": {
+                "name": "Meine Favoriten",
+                "pairs": [],
+                "description": "Ihre persönlichen Lieblings-Paare"
+            },
+            "high_performance": {
+                "name": "High Performance",
+                "pairs": [],
+                "description": "Paare mit bester Performance in letzter Zeit"
+            }
+        }
+
+        # RL INTEGRATION - NACH LOGGING!
+        try:
+            from rl_trading_agent import RLTradingManager
+            self.rl_manager = RLTradingManager(self)
+            self.rl_enabled = True
+            self.log("INFO", "✅ RL Manager erfolgreich initialisiert", "RL")
+        except ImportError as e:
+            self.log("WARNING", f"RL Manager nicht verfügbar: {e}", "RL")
+            self.rl_manager = None
+            self.rl_enabled = False
+        except Exception as e:
+            self.log("ERROR", f"RL Manager Fehler: {e}", "RL")
+            self.rl_manager = None
+            self.rl_enabled = False
+
+        # RL SETTINGS
+        self.rl_training_mode = False
+        self.rl_recommendation_weight = 0.3  # Gewichtung der RL-Empfehlung (30%)
+
+        # ABSCHLUSS UND STATUS
         self.log("INFO", "FinGPT System mit Multi-Timeframe initialisiert")
-        
-        # DEBUG - Prüfe Risk Manager Status
+    
+        # STATUS CHECKS
         if self.risk_manager:
-            self.log("INFO", "✅ Risk Manager ist verfügbar", "DEBUG")
+            self.log("INFO", "✅ Risk Manager ist verfügbar", "STATUS")
         else:
-            self.log("WARNING", "❌ Risk Manager ist NICHT verfügbar", "DEBUG")
+            self.log("WARNING", "❌ Risk Manager ist NICHT verfügbar", "STATUS")
+    
+        if self.has_extended_indicators:
+            self.log("INFO", "✅ Erweiterte Indikatoren verfügbar", "STATUS")
+        else:
+            self.log("INFO", "📊 Basis-Indikatoren verfügbar (RSI, MACD, S/R)", "STATUS")
+    
+        if self.rl_enabled:
+            self.log("INFO", "✅ RL Trading Agent verfügbar", "STATUS")
+        else:
+            self.log("INFO", "📈 Standard Trading Logik aktiv", "STATUS")
        
     def setup_logging(self):
         """Richtet das Logging-System ein"""
@@ -233,38 +341,49 @@ class MT5FinGPT:
         print(f"{title:^{width}}")
         print("═" * width)
     
-    def print_status_bar(self):
-        """Zeigt aktuellen Status an - erweitert mit Risk Management"""
+    def print_status_bar_extended(self):
+        """Erweiterte Status-Leiste mit allen Features"""
         with self.ui_lock:
-            # Risk Manager Status prüfen
+            # Risk Manager Status
             risk_status = "❌"
             if hasattr(self, 'risk_manager') and self.risk_manager:
                 try:
-                    # Teste ob Risk Manager funktional ist
                     summary = self.risk_manager.get_risk_summary()
                     if summary is not None:
                         risk_status = "✅"
-                        # Zusätzliche Checks
                         daily_pnl = summary.get('daily_pnl', 0)
-                        if daily_pnl <= self.risk_manager.max_daily_loss * 0.8:  # 80% des Limits
-                            risk_status = "🟡"  # Warnung
-                        elif daily_pnl <= self.risk_manager.max_daily_loss:
-                            risk_status = "🔴"  # Kritisch
+                        if hasattr(self.risk_manager, 'max_daily_loss'):
+                            if daily_pnl <= self.risk_manager.max_daily_loss * 0.8:
+                                risk_status = "🟡"
+                            elif daily_pnl <= self.risk_manager.max_daily_loss:
+                                risk_status = "🔴"
                 except:
-                    risk_status = "⚠️"  # Fehler
+                    risk_status = "⚠️"
         
+            # Erweiterte Indikatoren Status
+            indicators_status = "✅" if getattr(self, 'has_extended_indicators', False) else "❌"
+            indicators_count = "7+" if getattr(self, 'has_extended_indicators', False) else "3"
+        
+            # RL Status
+            rl_status = "✅" if getattr(self, 'rl_enabled', False) else "❌"
+        
+            # Integration Status
+            integration_status = "✅" if getattr(self, 'integration', None) else "❌"
+    
             status_items = [
                 f"📱 MT5: {'✅' if self.mt5_connected else '❌'}",
                 f"🤖 KI: {'✅' if self.selected_model else '❌'}",
                 f"💰 Trading: {'✅' if self.trading_enabled else '❌'}",
                 f"🔄 Auto: {'✅' if self.auto_trading else '❌'}",
-                f"🛡️ Risk: {risk_status}",  # Neuer Risk Status
+                f"🛡️ Risk: {risk_status}",
+                f"📊 Indicators: {indicators_status}({indicators_count})",
+                f"🤖 RL: {rl_status}",
                 f"🔧 Companion: {'✅' if self.companion_enabled else '❌'}"
             ]
-        
-            print("\n┌" + "─" * 65 + "┐")
-            print(f"│ {' | '.join(status_items):<63} │")
-            print("└" + "─" * 65 + "┘")
+    
+            print("\n┌" + "─" * 85 + "┐")
+            print(f"│ {' | '.join(status_items):<83} │")
+            print("└" + "─" * 85 + "┘")
     
     def start_trading_companion(self):
         """Startet das Trading Companion Script mit verbesserter UI"""
@@ -355,7 +474,7 @@ class MT5FinGPT:
             return False
     
     def interactive_menu(self):
-        """Verbesserte interaktive Benutzeroberfläche"""
+        """Korrigierte interaktive Benutzeroberfläche - Vollständige Menü-Anzeige"""
     
         # Companion automatisch starten (leise)
         if self.auto_start_companion and not self.companion_enabled:
@@ -368,20 +487,26 @@ class MT5FinGPT:
             # COMPANION KOMPLETT PAUSIEREN FÜR SAUBERE EINGABE
             companion_was_active = self.companion_enabled
             if companion_was_active:
-                # Temporär den Companion-Thread pausieren
                 import time
                 time.sleep(0.1)  # Kurz warten bis laufende Ausgaben fertig sind
+    
+            # Dynamischer Header basierend auf verfügbaren Features
+            header_title = "FinGPT TRADING SYSTEM"
+            if getattr(self, 'has_extended_indicators', False):
+                header_title += " (ERWEITERT)"
+            if getattr(self, 'rl_enabled', False):
+                header_title += " + RL"
         
-            # Schöne Header-Darstellung
-            self.print_header("FinGPT TRADING SYSTEM")
-        
+            self.print_header(header_title)
+    
             # Status-Leiste
             self.print_status_bar()
-        
-            # Hauptmenü
+    
+            # VOLLSTÄNDIGES HAUPTMENÜ
             print("\n📋 HAUPTMENÜ:")
             print("─" * 25)
-        
+    
+            # ALLE BASIS-OPTIONEN (1-19)
             menu_items = [
                 ("1", "📊", "Live-Daten anzeigen"),
                 ("2", "🤖", "KI-Analyse"),
@@ -399,26 +524,193 @@ class MT5FinGPT:
                 ("14", "🎯", "Trailing Stop Einstellungen"),
                 ("15", "📈", "Multi-Timeframe Einstellungen"),
                 ("16", "🛡️", "Risk Management"),
-                ("17", "❌", "Beenden")
+                ("17", "💱", "Währungspaar Management"),
+                ("18", "🤖", "Reinforcement Learning"),
+                ("19", "❌", "Beenden")  # Standard-Beenden ohne erweiterte Features
             ]
-        
+    
+            # Zeige alle Basis-Optionen
             for num, icon, desc in menu_items:
                 print(f" {num:>2}. {icon} {desc}")
+    
+            # ERWEITERTE INDIKATOREN SEKTION (nur wenn verfügbar)
+            if getattr(self, 'has_extended_indicators', False):
+                print("\n📊 ERWEITERTE INDIKATOREN:")
+                print("─" * 35)
+            
+                advanced_items = [
+                    ("20", "🔬", "Einzelne erweiterte Indikatoren"),
+                    ("21", "📊", "Vollständige technische Analyse"),
+                    ("22", "🎯", "Signal-Generator (Alle Indikatoren)"),
+                    ("23", "⚙️", "Erweiterte Indikator-Einstellungen"),
+                    ("24", "🤖", "KI-Analyse (mit allen Indikatoren)"),
+                    ("25", "📈", "Multi-Indikator Scanner"),
+                    ("26", "📋", "Indikator-Vergleich"),
+                    ("27", "🧪", "Indikator-Test & Optimierung"),
+                ]
+            
+                for num, icon, desc in advanced_items:
+                    print(f" {num:>2}. {icon} {desc}")
+            
+                # Erweiterte Beenden-Option
+                print(f"\n 28. ❌ Beenden")
         
-            print("─" * 45)
+            print("─" * 50)
         
+            # Feature-Status anzeigen
+            if getattr(self, 'has_extended_indicators', False):
+                available_indicators = [
+                    "Williams %R", "CCI", "Awesome Oscillator", 
+                    "Ichimoku Cloud", "VWAP", "MFI", "ADX"
+                ]
+                print(f"📊 Verfügbare erweiterte Indikatoren: {len(available_indicators)}")
+                print(f"🎯 Basis + Erweitert = {3 + len(available_indicators)} Indikatoren total")
+            else:
+                print("📊 Basis-Indikatoren: RSI, MACD, Support/Resistance")
+                print("💡 Tipp: Installieren Sie advanced_indicators.py für mehr Features!")
+    
+            print("─" * 50)
+    
             # EINGABE MIT THREAD-SCHUTZ
+            max_option = 28 if getattr(self, 'has_extended_indicators', False) else 19
             choice = ""
             try:
-                # Input ohne Thread-Interferenz
-                choice = input("🎯 Ihre Wahl (1-17): ").strip()
+                choice = input(f"🎯 Ihre Wahl (1-{max_option}): ").strip()
             except KeyboardInterrupt:
-                choice = "17"  # Beenden bei Ctrl+C
-        
+                choice = str(max_option)  # Beenden bei Ctrl+C
+    
             # Menü-Handler aufrufen
             if not self.handle_menu_choice(choice):
                 break
     
+    def print_status_bar(self):
+        """Status-Leiste - Funktioniert mit und ohne erweiterte Features"""
+        try:
+            with self.ui_lock:
+                # Risk Manager Status prüfen
+                risk_status = "❌"
+                if hasattr(self, 'risk_manager') and self.risk_manager:
+                    try:
+                        summary = self.risk_manager.get_risk_summary()
+                        if summary is not None:
+                            risk_status = "✅"
+                            daily_pnl = summary.get('daily_pnl', 0)
+                            # Erweiterte Risk-Checks nur wenn Risk Manager Attribute verfügbar
+                            if hasattr(self.risk_manager, 'max_daily_loss'):
+                                if daily_pnl <= self.risk_manager.max_daily_loss * 0.8:
+                                    risk_status = "🟡"  # Warnung
+                                elif daily_pnl <= self.risk_manager.max_daily_loss:
+                                    risk_status = "🔴"  # Kritisch
+                    except Exception:
+                        risk_status = "⚠️"  # Fehler
+
+                # Basis Status-Items (immer verfügbar)
+                status_items = [
+                    f"📱 MT5: {'✅' if self.mt5_connected else '❌'}",
+                    f"🤖 KI: {'✅' if self.selected_model else '❌'}",
+                    f"💰 Trading: {'✅' if self.trading_enabled else '❌'}",
+                    f"🔄 Auto: {'✅' if self.auto_trading else '❌'}",
+                    f"🛡️ Risk: {risk_status}",
+                ]
+
+                # Erweiterte Features (nur wenn verfügbar)
+                if getattr(self, 'has_extended_indicators', False):
+                    indicators_count = "7+"
+                    indicators_status = "✅"
+                else:
+                    indicators_count = "3"
+                    indicators_status = "📊"  # Basis-Indikatoren verfügbar
+        
+                status_items.append(f"📊 Indicators: {indicators_status}({indicators_count})")
+
+                # RL Status (nur wenn verfügbar)
+                if hasattr(self, 'rl_enabled'):
+                    rl_status = "✅" if self.rl_enabled else "❌"
+                    status_items.append(f"🤖 RL: {rl_status}")
+
+                # Companion Status
+                status_items.append(f"🔧 Companion: {'✅' if self.companion_enabled else '❌'}")
+
+                # Dynamische Breite basierend auf Anzahl der Items
+                total_width = max(75, len(' | '.join(status_items)) + 4)
+        
+                print("\n┌" + "─" * total_width + "┐")
+                print(f"│ {' | '.join(status_items):<{total_width-2}} │")
+                print("└" + "─" * total_width + "┘")
+            
+        except Exception as e:
+            # Fallback bei Fehlern
+            print("\n┌─────────────────────────────────────────────────────────────────┐")
+            print(f"│ Status-Bar Fehler: {str(e)[:50]:<50} │")
+            print("└─────────────────────────────────────────────────────────────────┘")
+
+    def print_status_bar_basic(self):
+        """Basis Status-Leiste (Fallback)"""
+        with self.ui_lock:
+            # Risk Manager Status
+            risk_status = "❌"
+            if hasattr(self, 'risk_manager') and self.risk_manager:
+                try:
+                    summary = self.risk_manager.get_risk_summary()
+                    if summary is not None:
+                        risk_status = "✅"
+                except:
+                    risk_status = "⚠️"
+
+            status_items = [
+                f"📱 MT5: {'✅' if self.mt5_connected else '❌'}",
+                f"🤖 KI: {'✅' if self.selected_model else '❌'}",
+                f"💰 Trading: {'✅' if self.trading_enabled else '❌'}",
+                f"🔄 Auto: {'✅' if self.auto_trading else '❌'}",
+                f"🛡️ Risk: {risk_status}",
+                f"🔧 Companion: {'✅' if self.companion_enabled else '❌'}"
+            ]
+
+            print("\n┌" + "─" * 65 + "┐")
+            print(f"│ {' | '.join(status_items):<63} │")
+            print("└" + "─" * 65 + "┘")
+
+    def print_status_bar_extended(self):
+        """Erweiterte Status-Leiste mit allen Features"""
+        with self.ui_lock:
+            # Risk Manager Status
+            risk_status = "❌"
+            if hasattr(self, 'risk_manager') and self.risk_manager:
+                try:
+                    summary = self.risk_manager.get_risk_summary()
+                    if summary is not None:
+                        risk_status = "✅"
+                        daily_pnl = summary.get('daily_pnl', 0)
+                        if hasattr(self.risk_manager, 'max_daily_loss'):
+                            if daily_pnl <= self.risk_manager.max_daily_loss * 0.8:
+                                risk_status = "🟡"
+                            elif daily_pnl <= self.risk_manager.max_daily_loss:
+                                risk_status = "🔴"
+                except:
+                    risk_status = "⚠️"
+        
+            # Erweiterte Indikatoren Status
+            indicators_status = "✅" if getattr(self, 'has_extended_indicators', False) else "❌"
+            indicators_count = "7+" if getattr(self, 'has_extended_indicators', False) else "3"
+        
+            # RL Status
+            rl_status = "✅" if getattr(self, 'rl_enabled', False) else "❌"
+
+            status_items = [
+                f"📱 MT5: {'✅' if self.mt5_connected else '❌'}",
+                f"🤖 KI: {'✅' if self.selected_model else '❌'}",
+                f"💰 Trading: {'✅' if self.trading_enabled else '❌'}",
+                f"🔄 Auto: {'✅' if self.auto_trading else '❌'}",
+                f"🛡️ Risk: {risk_status}",
+                f"📊 Indicators: {indicators_status}({indicators_count})",
+                f"🤖 RL: {rl_status}",
+                f"🔧 Companion: {'✅' if self.companion_enabled else '❌'}"
+            ]
+
+            print("\n┌" + "─" * 85 + "┐")
+            print(f"│ {' | '.join(status_items):<83} │")
+            print("└" + "─" * 85 + "┘")
+
     def handle_menu_choice(self, choice):
         """Vollständige Menü-Behandlung mit Logging"""
         self.log_debug_menu(choice, "handle_menu_choice")
@@ -527,18 +819,117 @@ class MT5FinGPT:
     
         elif choice == "6":
             self.log("INFO", "Auto-Trading Menü aufgerufen", "USER")
+    
             if not self.trading_enabled:
                 self.log("WARNING", "Auto-Trading abgelehnt - Trading nicht aktiviert", "TRADE")
-                print("Erst Trading aktivieren!")
+                print("❌ Erst Trading aktivieren!")
             elif self.auto_trading:
-                self.auto_trading = False
-                self.log("INFO", "Auto-Trading gestoppt", "TRADE")
-                print("Auto-Trading gestoppt")
+                # Auto-Trading läuft bereits - Stopp-Option
+                print("\n🔄 AUTO-TRADING LÄUFT")
+                print("─" * 25)
+                print(f"📊 Aktive Paare: {len(self.auto_trade_symbols)}")
+                print(f"💱 Symbole: {', '.join(self.auto_trade_symbols[:3])}")
+                if len(self.auto_trade_symbols) > 3:
+                    print(f"           ... und {len(self.auto_trade_symbols) - 3} weitere")
+                print(f"⏱️ Intervall: {self.analysis_interval}s")
+        
+                stop_choice = input("\nAuto-Trading stoppen? (ja/nein): ").lower()
+                if stop_choice == "ja":
+                    self.auto_trading = False
+                    self.log("INFO", "Auto-Trading gestoppt", "TRADE")
+                    print("✅ Auto-Trading gestoppt")
+                else:
+                    print("ℹ️ Auto-Trading läuft weiter...")
             else:
+                # Auto-Trading Setup mit vereinfachter Logik
                 self.log("INFO", "Auto-Trading Setup gestartet", "TRADE")
-                if self.enable_auto_trading():
-                    self.log("INFO", "Auto-Trading aktiviert und gestartet", "TRADE")
-                    self.run_auto_trading()
+        
+                print("\n🤖 VOLLAUTOMATISCHES TRADING SETUP")
+                print("═" * 50)
+                print("⚠️ WARNUNG: Automatisches Trading ist hochriskant!")
+                print("💰 Nur mit Geld handeln, das Sie verlieren können!")
+        
+                # Sicherheitsabfragen
+                confirm1 = input("\nAuto-Trading aktivieren? (GEFÄHRLICH/nein): ")
+                if confirm1 != "GEFÄHRLICH":
+                    print("❌ Auto-Trading abgebrochen")
+                else:
+                    confirm2 = input("Risiko verstanden? (ICH_VERSTEHE): ")
+                    if confirm2 != "ICH_VERSTEHE":
+                        print("❌ Auto-Trading abgebrochen")
+                    else:
+                        # Währungspaar-Auswahl
+                        print(f"\n📋 WÄHRUNGSPAAR AUSWAHL")
+                        print("─" * 30)
+                        print("1. Aktuelle Paare verwenden")
+                        print("2. Neue Paare auswählen")
+                
+                        pair_choice = input("Wählen (1-2): ").strip()
+                
+                        if pair_choice == "2":
+                            # Vereinfachte Auswahl
+                            print("\n📋 SCHNELLAUSWAHL:")
+                            print("1. Majors (EURUSD, GBPUSD, USDJPY, USDCHF, AUDUSD, USDCAD, NZDUSD)")
+                            print("2. Konservativ (EURUSD, GBPUSD, USDCHF)")
+                            print("3. EUR-Cross (EURUSD, EURGBP, EURJPY, EURCHF)")
+                            print("4. Manuell eingeben")
+                    
+                            quick_choice = input("Wählen (1-4): ").strip()
+                    
+                            if quick_choice == "1":
+                                self.auto_trade_symbols = ["EURUSD", "GBPUSD", "USDJPY", "USDCHF", "AUDUSD", "USDCAD", "NZDUSD"]
+                                print("✅ Majors ausgewählt")
+                            elif quick_choice == "2":
+                                self.auto_trade_symbols = ["EURUSD", "GBPUSD", "USDCHF"]
+                                print("✅ Konservative Auswahl")
+                            elif quick_choice == "3":
+                                self.auto_trade_symbols = ["EURUSD", "EURGBP", "EURJPY", "EURCHF"]
+                                print("✅ EUR-Cross ausgewählt")
+                            elif quick_choice == "4":
+                                pairs_input = input("Paare eingeben (kommagetrennt): ").upper()
+                                if pairs_input:
+                                    self.auto_trade_symbols = [p.strip() for p in pairs_input.split(',')]
+                                    print(f"✅ {len(self.auto_trade_symbols)} Paare eingegeben")
+                                else:
+                                    print("❌ Keine Eingabe - verwende aktuelle Paare")
+                            else:
+                                print("❌ Ungültige Auswahl - verwende aktuelle Paare")
+                
+                        # Stelle sicher, dass Paare vorhanden sind
+                        if not hasattr(self, 'auto_trade_symbols') or not self.auto_trade_symbols:
+                            self.auto_trade_symbols = ["EURUSD"]  # Fallback
+                            print("⚠️ Fallback: EURUSD wird verwendet")
+                
+                        # Intervall-Einstellung
+                        print(f"\n⏱️ TRADING INTERVALL")
+                        print("─" * 25)
+                        print(f"Aktuell: {self.analysis_interval}s")
+                        print("💡 Empfohlen: 120-300s für konservatives Trading")
+                
+                        new_interval = input(f"Neues Intervall in Sekunden (Enter für {self.analysis_interval}): ")
+                        if new_interval:
+                            try:
+                                self.analysis_interval = int(new_interval)
+                                print(f"✅ Intervall auf {self.analysis_interval}s gesetzt")
+                            except ValueError:
+                                print("❌ Ungültiges Intervall - verwende Standard")
+                
+                        # Auto-Trading aktivieren
+                        self.auto_trading = True
+                
+                        print(f"\n✅ AUTO-TRADING KONFIGURIERT")
+                        print("─" * 35)
+                        print(f"📊 Symbole: {len(self.auto_trade_symbols)}")
+                        print(f"💱 Paare: {', '.join(self.auto_trade_symbols[:5])}")
+                        if len(self.auto_trade_symbols) > 5:
+                            print(f"      ... und {len(self.auto_trade_symbols) - 5} weitere")
+                        print(f"⏱️ Intervall: {self.analysis_interval}s")
+                        print(f"🛡️ Risk Management: {'✅' if hasattr(self, 'risk_manager') and self.risk_manager else '❌'}")
+                
+                        self.log("INFO", f"Auto-Trading aktiviert mit {len(self.auto_trade_symbols)} Paaren", "TRADE")
+                        print(f"\n🚀 Starte Auto-Trading...")
+                        self.run_auto_trading()
+    
             input("\nDrücken Sie Enter zum Fortfahren...")
             return True
     
@@ -748,6 +1139,22 @@ class MT5FinGPT:
             return True
 
         elif choice == "17":
+            self.log("INFO", "Währungspaar Management aufgerufen", "USER")
+            self.currency_pair_management_menu()
+            input("\nDrücken Sie Enter zum Fortfahren...")
+            return True
+
+        elif choice == "18":
+            self.log("INFO", "RL Menü aufgerufen", "USER")
+            if self.rl_enabled:
+                self.rl_menu_enhanced()  # ← Ändere das hier!
+            else:
+                print("❌ Reinforcement Learning nicht verfügbar")
+                print("💡 Installieren Sie TensorFlow: pip install tensorflow")
+            input("\nDrücken Sie Enter zum Fortfahren...")
+            return True
+
+        elif choice == "19":
             self.log("INFO", "System-Shutdown durch Benutzer eingeleitet", "SYSTEM")
             self.print_header("SYSTEM BEENDEN")
             print("Stoppe alle Prozesse...")
@@ -782,6 +1189,2465 @@ class MT5FinGPT:
             self.log("INFO", "System erfolgreich heruntergefahren", "SYSTEM")
             print("Alle Prozesse beendet. Auf Wiedersehen!")
             return False
+
+
+        # NEUE ERWEITERTE OPTIONEN (20-27)
+        if choice == "20" and getattr(self, 'has_extended_indicators', False):
+            self.log("INFO", "Einzelne erweiterte Indikatoren", "USER")
+            self.show_individual_advanced_indicators()
+            input("\nDrücken Sie Enter zum Fortfahren...")
+            return True
+
+        elif choice == "21" and getattr(self, 'has_extended_indicators', False):
+            self.log("INFO", "Vollständige technische Analyse mit allen Indikatoren", "USER")
+            self.comprehensive_technical_analysis()
+            input("\nDrücken Sie Enter zum Fortfahren...")
+            return True
+
+        elif choice == "22" and getattr(self, 'has_extended_indicators', False):
+            self.log("INFO", "Signal-Generator mit allen Indikatoren", "USER")
+            self.advanced_signal_generator()
+            input("\nDrücken Sie Enter zum Fortfahren...")
+            return True
+
+        elif choice == "23" and getattr(self, 'has_extended_indicators', False):
+            self.log("INFO", "Erweiterte Indikator-Einstellungen", "USER")
+            self.advanced_indicator_settings_menu()
+            return True
+
+        elif choice == "24" and getattr(self, 'has_extended_indicators', False):
+            self.log("INFO", "KI-Analyse mit allen Indikatoren", "USER")
+            self.enhanced_ai_analysis()
+            input("\nDrücken Sie Enter zum Fortfahren...")
+            return True
+
+        elif choice == "25" and getattr(self, 'has_extended_indicators', False):
+            self.log("INFO", "Multi-Indikator Scanner", "USER")
+            self.multi_indicator_scanner()
+            input("\nDrücken Sie Enter zum Fortfahren...")
+            return True
+
+        elif choice == "26" and getattr(self, 'has_extended_indicators', False):
+            self.log("INFO", "Indikator-Vergleich", "USER")
+            self.indicator_comparison_analysis()
+            input("\nDrücken Sie Enter zum Fortfahren...")
+            return True
+
+        elif choice == "27" and getattr(self, 'has_extended_indicators', False):
+            self.log("INFO", "Indikator-Test & Optimierung", "USER")
+            self.indicator_testing_suite()
+            input("\nDrücken Sie Enter zum Fortfahren...")
+            return True
+
+            # BEENDEN (dynamisch)
+
+        elif choice == "19" and not getattr(self, 'has_extended_indicators', False):
+            return self.shutdown_system()
+        elif choice == "28" and getattr(self, 'has_extended_indicators', False):
+            return self.shutdown_system()
+
+            # FEATURE NICHT VERFÜGBAR
+        elif choice in ["20", "21", "22", "23", "24", "25", "26", "27"] and not getattr(self, 'has_extended_indicators', False):
+            print("❌ Erweiterte Indikatoren nicht verfügbar")
+            print("💡 Installieren Sie advanced_indicators.py für diese Features")
+            print("📝 Datei muss im gleichen Ordner wie FinGPT.py liegen")
+            input("\nDrücken Sie Enter zum Fortfahren...")
+            return True
+
+        else:
+            print("❌ Ungültige Option")
+            input("\nDrücken Sie Enter zum Fortfahren...")
+            return True
+
+    def advanced_signal_generator(self):
+        """Signal-Generator mit allen verfügbaren Indikatoren"""
+        self.print_header("SIGNAL-GENERATOR (ALLE INDIKATOREN)")
+    
+        if not self.advanced_indicators:
+            print("❌ Erweiterte Indikatoren nicht verfügbar")
+            return
+    
+        print("📊 Erstelle Trading-Signale mit allen verfügbaren Indikatoren")
+        print("─" * 60)
+    
+        # Single Symbol oder Multiple
+        mode = input("Modus wählen:\n1. Einzelnes Symbol\n2. Multiple Symbole\nWahl (1-2): ").strip()
+    
+        if mode == "1":
+            symbol = input("💱 Symbol eingeben: ").upper()
+            if symbol:
+                self.generate_single_signal(symbol)
+    
+        elif mode == "2":
+            symbols_input = input("💱 Symbole (kommagetrennt, z.B. EURUSD,GBPUSD): ").upper()
+            if symbols_input:
+                symbols = [s.strip() for s in symbols_input.split(',')]
+                self.generate_multiple_signals(symbols)
+    
+        else:
+            print("❌ Ungültige Auswahl")
+
+    def generate_single_signal(self, symbol):
+        """Generiert detailliertes Signal für einzelnes Symbol"""
+        try:
+            print(f"\n🔄 Generiere umfassendes Signal für {symbol}...")
+        
+            if not self.integration:
+                print("❌ Integration nicht verfügbar")
+                return
+        
+            # Erstelle Trading-Signal mit allen Indikatoren
+            trading_signal = self.integration.create_trading_signal(symbol, use_advanced=True)
+        
+            print(f"\n{'='*60}")
+            print(f"🎯 TRADING-SIGNAL: {symbol}")
+            print(f"{'='*60}")
+        
+            # Haupt-Signal mit Icon
+            signal_icon = "🚀" if trading_signal['signal'] == "STRONG_BUY" else \
+                         "🟢" if trading_signal['signal'] == "BUY" else \
+                         "💥" if trading_signal['signal'] == "STRONG_SELL" else \
+                         "🔴" if trading_signal['signal'] == "SELL" else "🟡"
+        
+            print(f"{signal_icon} HAUPTSIGNAL: {trading_signal['signal']}")
+            print(f"🎯 KONFIDENZ: {trading_signal['confidence']}")
+            print(f"📊 ANALYSIERTE INDIKATOREN: {trading_signal['total_indicators']}")
+            print(f"⏰ ZEITSTEMPEL: {trading_signal['timestamp']}")
+        
+            # Signal-Verhältnis
+            if trading_signal.get('buy_ratio', 0) > 0 or trading_signal.get('sell_ratio', 0) > 0:
+                print(f"\n📈 SIGNAL-VERTEILUNG:")
+                print(f"🟢 Bullisch: {trading_signal.get('buy_ratio', 0):.1%}")
+                print(f"🔴 Bearisch: {trading_signal.get('sell_ratio', 0):.1%}")
+        
+            # Unterstützende Signale
+            if trading_signal.get('supporting_signals'):
+                print(f"\n✅ UNTERSTÜTZENDE SIGNALE:")
+                for i, signal in enumerate(trading_signal['supporting_signals'], 1):
+                    print(f"{i:2d}. {signal}")
+        
+            # Neutrale/Konflikt Signale
+            if trading_signal.get('conflicting_signals'):
+                print(f"\n⚠️ NEUTRALE SIGNALE:")
+                for i, signal in enumerate(trading_signal['conflicting_signals'], 1):
+                    print(f"{i:2d}. {signal}")
+        
+            # Trading-Empfehlung
+            print(f"\n💡 TRADING-EMPFEHLUNG:")
+            if trading_signal['signal'] in ['STRONG_BUY', 'BUY']:
+                print(f"📈 Kaufgelegenheit erkannt")
+                print(f"🎯 Empfohlene Aktion: Long-Position eröffnen")
+            
+                # Berechne Einstiegs-Levels
+                tick = mt5.symbol_info_tick(symbol)
+                if tick:
+                    current_price = tick.ask
+                    print(f"💰 Aktueller Einstiegspreis: {current_price:.5f}")
+                
+                    # Support/Resistance für Stop-Loss
+                    sr_data = self.calculate_support_resistance(symbol)
+                    if sr_data and sr_data['nearest_support']:
+                        sup_level, _ = sr_data['nearest_support']
+                        suggested_sl = sup_level * 0.999  # 0.1% unter Support
+                        print(f"🛑 Empfohlener Stop-Loss: {suggested_sl:.5f}")
+                
+                    if sr_data and sr_data['nearest_resistance']:
+                        res_level, _ = sr_data['nearest_resistance']
+                        suggested_tp = res_level * 1.001  # 0.1% vor Resistance
+                        print(f"🎯 Empfohlenes Take-Profit: {suggested_tp:.5f}")
+        
+            elif trading_signal['signal'] in ['STRONG_SELL', 'SELL']:
+                print(f"📉 Verkaufsgelegenheit erkannt")
+                print(f"🎯 Empfohlene Aktion: Short-Position oder bestehende Position schließen")
+            
+                tick = mt5.symbol_info_tick(symbol)
+                if tick:
+                    current_price = tick.bid
+                    print(f"💰 Aktueller Verkaufspreis: {current_price:.5f}")
+        
+            else:
+                print(f"⏸️ Abwarten empfohlen")
+                print(f"🎯 Empfohlene Aktion: Weitere Bestätigung abwarten")
+                print(f"📊 Grund: Gemischte oder neutrale Signale")
+        
+            print(f"{'='*60}")
+        
+        except Exception as e:
+            print(f"❌ Signal-Generierung Fehler: {e}")
+
+    def generate_multiple_signals(self, symbols):
+        """Generiert Signale für mehrere Symbole"""
+        try:
+            print(f"\n🔄 Generiere Signale für {len(symbols)} Symbole...")
+        
+            if not self.integration:
+                print("❌ Integration nicht verfügbar")
+                return
+        
+            all_signals = []
+        
+            for symbol in symbols:
+                print(f"📊 Analysiere {symbol}...")
+                try:
+                    trading_signal = self.integration.create_trading_signal(symbol, use_advanced=True)
+                
+                    # Bewerte Signal-Qualität
+                    score = 0
+                    if trading_signal['signal'] in ['STRONG_BUY', 'STRONG_SELL']:
+                        score = 5
+                    elif trading_signal['signal'] in ['BUY', 'SELL']:
+                        score = 3
+                    elif trading_signal['signal'] == 'NEUTRAL':
+                        score = 1
+                
+                    # Konfidenz-Bonus
+                    if trading_signal['confidence'] == 'HOCH':
+                        score += 2
+                    elif trading_signal['confidence'] == 'MITTEL':
+                        score += 1
+                
+                    trading_signal['score'] = score
+                    all_signals.append(trading_signal)
+                
+                    time.sleep(0.5)  # Kurze Pause zwischen Analysen
+                
+                except Exception as e:
+                    print(f"⚠️ Fehler bei {symbol}: {e}")
+        
+            # Sortiere nach Score
+            all_signals.sort(key=lambda x: x['score'], reverse=True)
+        
+            # Zeige Zusammenfassung
+            print(f"\n{'='*70}")
+            print(f"📊 MULTI-SYMBOL SIGNAL-ÜBERSICHT")
+            print(f"{'='*70}")
+        
+            print(f"{'Symbol':<8} {'Signal':<12} {'Konfidenz':<10} {'Score':<6} {'Indikatoren':<12}")
+            print("─" * 70)
+        
+            for signal in all_signals:
+                symbol = signal['symbol']
+                main_signal = signal['signal']
+                confidence = signal['confidence']
+                score = signal['score']
+                indicators = signal.get('total_indicators', 0)
+            
+                signal_icon = "🚀" if main_signal == "STRONG_BUY" else \
+                             "🟢" if main_signal == "BUY" else \
+                             "💥" if main_signal == "STRONG_SELL" else \
+                             "🔴" if main_signal == "SELL" else "🟡"
+            
+                print(f"{symbol:<8} {signal_icon}{main_signal:<11} {confidence:<10} {score:<6} {indicators:<12}")
+        
+            # Top-Gelegenheiten hervorheben
+            strong_signals = [s for s in all_signals if s['score'] >= 5]
+        
+            if strong_signals:
+                print(f"\n🎯 TOP TRADING-GELEGENHEITEN (Score ≥ 5):")
+                print("─" * 50)
+            
+                for i, signal in enumerate(strong_signals[:5], 1):  # Top 5
+                    symbol = signal['symbol']
+                    main_signal = signal['signal']
+                    buy_ratio = signal.get('buy_ratio', 0)
+                    sell_ratio = signal.get('sell_ratio', 0)
+                
+                    ratio = buy_ratio if main_signal in ['STRONG_BUY', 'BUY'] else sell_ratio
+                
+                    print(f"🏆 {i}. {symbol}: {main_signal} ({ratio:.1%} Übereinstimmung)")
+                
+                    # Zeige Top-2 unterstützende Signale
+                    if signal.get('supporting_signals'):
+                        top_signals = signal['supporting_signals'][:2]
+                        for supporting in top_signals:
+                            print(f"   ✅ {supporting}")
+            else:
+                print(f"\n⏸️ Keine starken Trading-Gelegenheiten gefunden")
+                print(f"💡 Alle Signale sind neutral oder widersprüchlich")
+        
+            print(f"{'='*70}")
+        
+        except Exception as e:
+            print(f"❌ Multi-Signal Fehler: {e}")
+
+    def show_individual_advanced_indicators(self):
+        """Zeigt einzelne erweiterte Indikatoren zur Auswahl"""
+        while True:
+            self.print_header("EINZELNE ERWEITERTE INDIKATOREN")
+        
+            print("📊 Verfügbare Indikatoren:")
+            print("─" * 35)
+        
+            indicator_menu = [
+                ("1", "📈", "Williams %R"),
+                ("2", "📊", "Commodity Channel Index (CCI)"),
+                ("3", "🌊", "Awesome Oscillator"),
+                ("4", "☁️", "Ichimoku Cloud"),
+                ("5", "📊", "VWAP (Volume Weighted Average Price)"),
+                ("6", "💰", "Money Flow Index (MFI)"),
+                ("7", "📈", "Average Directional Index (ADX)"),
+                ("8", "📊", "Alle Indikatoren anzeigen"),
+                ("9", "⬅️", "Zurück")
+            ]
+        
+            for num, icon, desc in indicator_menu:
+                print(f" {num}. {icon} {desc}")
+        
+            print("─" * 35)
+        
+            choice = input("🎯 Indikator wählen (1-9): ").strip()
+        
+            if choice == "9":
+                break
+            elif choice in ["1", "2", "3", "4", "5", "6", "7", "8"]:
+                symbol = input("💱 Symbol eingeben: ").upper()
+                if symbol:
+                    self.display_selected_indicator(choice, symbol)
+            else:
+                print("❌ Ungültige Auswahl")
+        
+            if choice != "9":
+                input("\nDrücken Sie Enter zum Fortfahren...")
+
+    def display_selected_indicator(self, indicator_choice, symbol):
+        """Zeigt einen spezifischen Indikator an"""
+        if not self.advanced_indicators:
+            print("❌ Erweiterte Indikatoren nicht verfügbar")
+            return
+    
+        try:
+            print(f"\n📊 Berechne Indikator für {symbol}...")
+        
+            if indicator_choice == "1":
+                # Williams %R
+                wr_data = self.advanced_indicators.calculate_williams_r(symbol)
+                if wr_data:
+                    print(f"\n📈 WILLIAMS %R ANALYSE:")
+                    print(f"Wert: {wr_data['value']}%")
+                    print(f"Signal: {wr_data['signal']}")
+                    print(f"Beschreibung: {wr_data['description']}")
+                    print(f"Überkauft Level: {wr_data['overbought_level']}")
+                    print(f"Überverkauft Level: {wr_data['oversold_level']}")
+                else:
+                    print("❌ Williams %R Daten nicht verfügbar")
+        
+            elif indicator_choice == "2":
+                # CCI
+                cci_data = self.advanced_indicators.calculate_cci(symbol)
+                if cci_data:
+                    print(f"\n📊 COMMODITY CHANNEL INDEX:")
+                    print(f"Wert: {cci_data['value']}")
+                    print(f"Signal: {cci_data['signal']}")
+                    print(f"Beschreibung: {cci_data['description']}")
+                    print(f"Überkauft Level: {cci_data['overbought_level']}")
+                    print(f"Überverkauft Level: {cci_data['oversold_level']}")
+                else:
+                    print("❌ CCI Daten nicht verfügbar")
+        
+            elif indicator_choice == "3":
+                # Awesome Oscillator
+                ao_data = self.advanced_indicators.calculate_awesome_oscillator(symbol)
+                if ao_data:
+                    print(f"\n🌊 AWESOME OSCILLATOR:")
+                    print(f"Wert: {ao_data['value']}")
+                    print(f"Signal: {ao_data['signal']}")
+                    print(f"Beschreibung: {ao_data['description']}")
+                    print(f"Über Nulllinie: {ao_data['above_zero']}")
+                    print(f"Momentum: {ao_data['momentum']}")
+                else:
+                    print("❌ Awesome Oscillator Daten nicht verfügbar")
+        
+            elif indicator_choice == "4":
+                # Ichimoku
+                ichimoku_data = self.advanced_indicators.calculate_ichimoku(symbol)
+                if ichimoku_data:
+                    print(f"\n☁️ ICHIMOKU CLOUD ANALYSE:")
+                    print(f"Tenkan-sen: {ichimoku_data['tenkan_sen']}")
+                    print(f"Kijun-sen: {ichimoku_data['kijun_sen']}")
+                    print(f"Cloud Top: {ichimoku_data['cloud_top']}")
+                    print(f"Cloud Bottom: {ichimoku_data['cloud_bottom']}")
+                    print(f"Preis vs Cloud: {ichimoku_data['price_vs_cloud']}")
+                    print(f"Cloud Signal: {ichimoku_data['cloud_signal']}")
+                    print(f"TK Signal: {ichimoku_data['tk_signal']}")
+                    print(f"Gesamtsignal: {ichimoku_data['overall_signal']}")
+                    print(f"Beschreibung: {ichimoku_data['description']}")
+                else:
+                    print("❌ Ichimoku Daten nicht verfügbar")
+        
+            elif indicator_choice == "5":
+                # VWAP
+                vwap_data = self.advanced_indicators.calculate_vwap(symbol)
+                if vwap_data:
+                    print(f"\n📊 VWAP ANALYSE:")
+                    print(f"VWAP: {vwap_data['vwap']}")
+                    print(f"Aktueller Preis: {vwap_data['current_price']}")
+                    print(f"Abstand: {vwap_data['distance_pct']}%")
+                    print(f"Signal: {vwap_data['signal']}")
+                    print(f"Beschreibung: {vwap_data['description']}")
+                    print(f"Preis über VWAP: {vwap_data['above_vwap']}")
+                else:
+                    print("❌ VWAP Daten nicht verfügbar")
+        
+            elif indicator_choice == "6":
+                # MFI
+                mfi_data = self.advanced_indicators.calculate_mfi(symbol)
+                if mfi_data:
+                    print(f"\n💰 MONEY FLOW INDEX:")
+                    print(f"Wert: {mfi_data['value']}")
+                    print(f"Signal: {mfi_data['signal']}")
+                    print(f"Beschreibung: {mfi_data['description']}")
+                    print(f"Überkauft Level: {mfi_data['overbought_level']}")
+                    print(f"Überverkauft Level: {mfi_data['oversold_level']}")
+                else:
+                    print("❌ MFI Daten nicht verfügbar")
+        
+            elif indicator_choice == "7":
+                # ADX
+                adx_data = self.advanced_indicators.calculate_adx(symbol)
+                if adx_data:
+                    print(f"\n📈 AVERAGE DIRECTIONAL INDEX:")
+                    print(f"ADX: {adx_data['adx']}")
+                    print(f"DI+: {adx_data['di_plus']}")
+                    print(f"DI-: {adx_data['di_minus']}")
+                    print(f"Trend-Stärke: {adx_data['trend_strength']}")
+                    print(f"Trend-Richtung: {adx_data['trend_direction']}")
+                    print(f"Signal: {adx_data['signal']}")
+                    print(f"Starker Trend: {adx_data['strong_trend']}")
+                    print(f"Beschreibung: {adx_data['description']}")
+                else:
+                    print("❌ ADX Daten nicht verfügbar")
+        
+            elif indicator_choice == "8":
+                # Alle Indikatoren
+                analysis = self.advanced_indicators.get_comprehensive_analysis(symbol)
+                if analysis:
+                    self.advanced_indicators.print_analysis_report(symbol, analysis)
+                else:
+                    print("❌ Umfassende Analyse nicht verfügbar")
+        
+        except Exception as e:
+            print(f"❌ Fehler bei Indikator-Berechnung: {e}")
+
+    def comprehensive_technical_analysis(self):
+        """Vollständige technische Analyse mit allen verfügbaren Indikatoren"""
+        self.print_header("VOLLSTÄNDIGE TECHNISCHE ANALYSE")
+    
+        symbol = input("💱 Symbol für vollständige Analyse: ").upper()
+        if not symbol:
+            print("❌ Kein Symbol eingegeben")
+            return
+    
+        print(f"\n🔄 Führe vollständige Analyse für {symbol} durch...")
+        print("─" * 60)
+    
+        try:
+            # 1. Basis-Indikatoren
+            print("📊 BASIS-INDIKATOREN:")
+            print("─" * 30)
+        
+            # RSI
+            rsi_value = self.calculate_rsi(symbol)
+            if rsi_value:
+                rsi_signal, rsi_desc = self.get_rsi_signal(rsi_value)
+                icon = "🟢" if rsi_signal == "BUY" else "🔴" if rsi_signal == "SELL" else "🟡"
+                print(f"{icon} RSI: {rsi_value} - {rsi_desc}")
+        
+            # MACD
+            macd_data = self.calculate_macd(symbol)
+            if macd_data:
+                macd_signal, macd_desc = self.get_macd_signal(macd_data)
+                icon = "🟢" if macd_signal == "BUY" else "🔴" if macd_signal == "SELL" else "🟡"
+                print(f"{icon} MACD: {macd_desc}")
+        
+            # Support/Resistance
+            sr_data = self.calculate_support_resistance(symbol)
+            if sr_data:
+                current_price = sr_data['current_price']
+                sr_signal, sr_desc = self.get_sr_signal(sr_data, current_price)
+                icon = "🟢" if sr_signal == "BUY" else "🔴" if sr_signal == "SELL" else "🟡"
+                print(f"{icon} S/R: {sr_desc}")
+        
+            # 2. Erweiterte Indikatoren
+            if self.advanced_indicators:
+                print("\n📈 ERWEITERTE INDIKATOREN:")
+                print("─" * 30)
+            
+                advanced_analysis = self.advanced_indicators.get_comprehensive_analysis(symbol)
+                if advanced_analysis:
+                    self.advanced_indicators.print_analysis_report(symbol, advanced_analysis)
+        
+            # 3. Gesamtbewertung
+            if self.integration:
+                print("\n🎯 GESAMTBEWERTUNG:")
+                print("─" * 30)
+            
+                trading_signal = self.integration.create_trading_signal(symbol, use_advanced=True)
+            
+                signal_icon = "🚀" if trading_signal['signal'] == "STRONG_BUY" else \
+                             "🟢" if trading_signal['signal'] == "BUY" else \
+                             "💥" if trading_signal['signal'] == "STRONG_SELL" else \
+                             "🔴" if trading_signal['signal'] == "SELL" else "🟡"
+            
+                print(f"{signal_icon} SIGNAL: {trading_signal['signal']}")
+                print(f"🎯 KONFIDENZ: {trading_signal['confidence']}")
+                print(f"📊 ANALYSIERTE INDIKATOREN: {trading_signal['total_indicators']}")
+            
+                if trading_signal.get('buy_ratio', 0) > 0 or trading_signal.get('sell_ratio', 0) > 0:
+                    print(f"📈 Bullisch: {trading_signal.get('buy_ratio', 0):.1%}")
+                    print(f"📉 Bearisch: {trading_signal.get('sell_ratio', 0):.1%}")
+            
+                # Top-Signale anzeigen
+                if trading_signal.get('supporting_signals'):
+                    print(f"\n✅ TOP UNTERSTÜTZENDE SIGNALE:")
+                    for i, signal in enumerate(trading_signal['supporting_signals'][:5], 1):
+                        print(f"{i}. {signal}")
+        
+            print("─" * 60)
+        
+        except Exception as e:
+            print(f"❌ Vollständige Analyse Fehler: {e}")
+
+    def advanced_indicator_settings_menu(self):
+        """Einstellungsmenü für erweiterte Indikatoren"""
+        if not self.advanced_indicators:
+            print("❌ Erweiterte Indikatoren nicht verfügbar")
+            return
+    
+        while True:
+            self.print_header("ERWEITERTE INDIKATOR-EINSTELLUNGEN")
+        
+            print("📊 Verfügbare Einstellungen:")
+            print("─" * 35)
+            print(" 1. Williams %R Parameter")
+            print(" 2. CCI Parameter") 
+            print(" 3. Awesome Oscillator Parameter")
+            print(" 4. Ichimoku Parameter")
+            print(" 5. VWAP Parameter")
+            print(" 6. Money Flow Index Parameter")
+            print(" 7. ADX Parameter")
+            print(" 8. Alle auf Standard zurücksetzen")
+            print(" 9. Zurück")
+        
+            setting_choice = input("\n🎯 Ihre Wahl (1-9): ").strip()
+        
+            if setting_choice == "1":
+                self.configure_williams_r_settings()
+            elif setting_choice == "8":
+                confirm = input("Alle auf Standard zurücksetzen? (ja/nein): ")
+                if confirm.lower() == "ja":
+                    self.reset_advanced_indicator_settings()
+                    print("✅ Alle Einstellungen zurückgesetzt")
+            elif setting_choice == "9":
+                break
+            else:
+                print("❌ Funktion noch nicht implementiert oder ungültige Auswahl")
+        
+            if setting_choice != "9":
+                input("\nDrücken Sie Enter zum Fortfahren...")
+
+    def configure_williams_r_settings(self):
+        """Konfiguration für Williams %R"""
+        if not self.advanced_indicators:
+            return
+    
+        print("\n📊 WILLIAMS %R EINSTELLUNGEN")
+        print("─" * 30)
+        print(f"Aktuelle Periode: {self.advanced_indicators.williams_r_period}")
+        print(f"Überkauft Level: {self.advanced_indicators.williams_r_overbought}")
+        print(f"Überverkauft Level: {self.advanced_indicators.williams_r_oversold}")
+    
+        try:
+            period = input(f"Neue Periode (5-50, aktuell {self.advanced_indicators.williams_r_period}): ")
+            if period:
+                period = int(period)
+                if 5 <= period <= 50:
+                    self.advanced_indicators.williams_r_period = period
+                    print(f"✅ Williams %R Periode auf {period} gesetzt")
+                else:
+                    print("❌ Periode muss zwischen 5 und 50 liegen")
+        except ValueError:
+            print("❌ Ungültige Eingabe")
+
+    def reset_advanced_indicator_settings(self):
+        """Setzt erweiterte Indikator-Einstellungen zurück"""
+        if self.advanced_indicators:
+            # Standard-Werte setzen
+            self.advanced_indicators.williams_r_period = 14
+            self.advanced_indicators.williams_r_overbought = -20
+            self.advanced_indicators.williams_r_oversold = -80
+            self.advanced_indicators.cci_period = 20
+            self.advanced_indicators.cci_overbought = 100
+            self.advanced_indicators.cci_oversold = -100
+            self.advanced_indicators.ao_fast_period = 5
+            self.advanced_indicators.ao_slow_period = 34
+            # ... weitere Standard-Werte nach Bedarf
+
+    def enhanced_ai_analysis(self):
+        """Erweiterte KI-Analyse mit allen Indikatoren"""
+        self.print_header("ERWEITERTE KI-ANALYSE")
+    
+        symbol = input("💱 Symbol für erweiterte KI-Analyse: ").upper()
+        if not symbol:
+            print("❌ Kein Symbol eingegeben")
+            return
+    
+        if not self.integration:
+            print("❌ Integration nicht verfügbar")
+            return
+    
+        print(f"\n🔄 Führe erweiterte KI-Analyse für {symbol} durch...")
+    
+        try:
+            ai_response = self.integration.enhanced_ai_analysis(symbol, include_advanced=True)
+            print("\n🤖 ERWEITERTE KI-ANALYSE:")
+            print("─" * 40)
+            print(ai_response)
+        except Exception as e:
+            print(f"❌ Erweiterte KI-Analyse Fehler: {e}")
+
+    def multi_indicator_scanner(self):
+        """Scanner für multiple Symbole mit allen Indikatoren"""
+        self.print_header("MULTI-INDIKATOR SCANNER")
+    
+        symbols_input = input("💱 Symbole (kommagetrennt, leer für Standard): ").upper()
+    
+        if symbols_input:
+            symbols = [s.strip() for s in symbols_input.split(',')]
+        else:
+            symbols = ["EURUSD", "GBPUSD", "USDJPY", "USDCHF", "AUDUSD"]
+    
+        print(f"\n🔄 Scanne {len(symbols)} Symbole...")
+    
+        if not self.integration:
+            print("❌ Integration nicht verfügbar")
+            return
+    
+        try:
+            opportunities = []
+        
+            for symbol in symbols:
+                print(f"📊 Scanne {symbol}...")
+                try:
+                    trading_signal = self.integration.create_trading_signal(symbol, use_advanced=True)
+                
+                    score = 0
+                    if trading_signal['signal'] in ['STRONG_BUY', 'STRONG_SELL']:
+                        score = 5
+                    elif trading_signal['signal'] in ['BUY', 'SELL']:
+                        score = 3
+                
+                    if trading_signal['confidence'] == 'HOCH':
+                        score += 2
+                
+                    trading_signal['score'] = score
+                    opportunities.append(trading_signal)
+                
+                except Exception as e:
+                    print(f"⚠️ {symbol}: {e}")
+        
+            # Sortiere nach Score
+            opportunities.sort(key=lambda x: x['score'], reverse=True)
+        
+            print(f"\n{'='*60}")
+            print("📊 SCANNER ERGEBNISSE")
+            print(f"{'='*60}")
+        
+            for opp in opportunities:
+                signal_icon = "🚀" if opp['signal'] == "STRONG_BUY" else \
+                             "🟢" if opp['signal'] == "BUY" else \
+                             "💥" if opp['signal'] == "STRONG_SELL" else \
+                             "🔴" if opp['signal'] == "SELL" else "🟡"
+            
+                print(f"{signal_icon} {opp['symbol']:8} | {opp['signal']:12} | Score: {opp['score']} | Konfidenz: {opp['confidence']}")
+        
+        except Exception as e:
+            print(f"❌ Scanner Fehler: {e}")
+            #
+
+    def indicator_comparison_analysis(self):
+        """Vergleicht verschiedene Indikatoren für ein Symbol"""
+        self.print_header("INDIKATOR-VERGLEICH")
+    
+        symbol = input("💱 Symbol für Vergleich: ").upper()
+        if not symbol:
+            print("❌ Kein Symbol eingegeben")
+            return
+    
+        print(f"\n🔄 Vergleiche Indikatoren für {symbol}...")
+    
+        try:
+            # Basis-Indikatoren sammeln
+            indicators_data = {}
+        
+            # RSI
+            rsi_value = self.calculate_rsi(symbol)
+            if rsi_value:
+                rsi_signal, rsi_desc = self.get_rsi_signal(rsi_value)
+                indicators_data['RSI'] = {
+                    'signal': rsi_signal,
+                    'value': rsi_value,
+                    'description': rsi_desc,
+                    'type': 'Momentum'
+                }
+        
+            # MACD
+            macd_data = self.calculate_macd(symbol)
+            if macd_data:
+                macd_signal, macd_desc = self.get_macd_signal(macd_data)
+                indicators_data['MACD'] = {
+                    'signal': macd_signal,
+                    'value': f"{macd_data['macd']:.6f}",
+                    'description': macd_desc,
+                    'type': 'Trend/Momentum'
+                }
+        
+            # Support/Resistance
+            sr_data = self.calculate_support_resistance(symbol)
+            if sr_data:
+                current_price = sr_data['current_price']
+                sr_signal, sr_desc = self.get_sr_signal(sr_data, current_price)
+                indicators_data['Support/Resistance'] = {
+                    'signal': sr_signal,
+                    'value': f"{current_price:.5f}",
+                    'description': sr_desc,
+                    'type': 'Price Action'
+                }
+        
+            # Erweiterte Indikatoren hinzufügen
+            if self.advanced_indicators:
+                advanced_analysis = self.advanced_indicators.get_comprehensive_analysis(symbol)
+            
+                for indicator, data in advanced_analysis.items():
+                    if 'signal' in data and 'description' in data:
+                        indicator_name = indicator.replace('_', ' ').title()
+                    
+                        # Typ bestimmen
+                        if indicator in ['williams_r', 'cci', 'awesome_oscillator']:
+                            ind_type = 'Momentum'
+                        elif indicator in ['ichimoku', 'adx']:
+                            ind_type = 'Trend'
+                        elif indicator in ['vwap', 'mfi']:
+                            ind_type = 'Volume'
+                        else:
+                            ind_type = 'Other'
+                    
+                        indicators_data[indicator_name] = {
+                            'signal': data['signal'],
+                            'value': str(data.get('value', 'N/A')),
+                            'description': data['description'],
+                            'type': ind_type
+                        }
+        
+            # Gruppiere nach Typ
+            indicator_types = {}
+            for name, data in indicators_data.items():
+                indicator_type = data['type']
+                if indicator_type not in indicator_types:
+                    indicator_types[indicator_type] = []
+                indicator_types[indicator_type].append((name, data))
+        
+            # Zeige Vergleich
+            print(f"\n{'='*80}")
+            print(f"📊 INDIKATOR-VERGLEICH: {symbol}")
+            print(f"{'='*80}")
+        
+            for indicator_type, indicators in indicator_types.items():
+                print(f"\n📈 {indicator_type.upper()}:")
+                print("─" * 60)
+                print(f"{'Indikator':<20} {'Signal':<12} {'Wert':<15} {'Beschreibung'}")
+                print("─" * 60)
+            
+                for name, data in indicators:
+                    signal = data['signal']
+                    value = data['value']
+                    description = data['description'][:30] + "..." if len(data['description']) > 30 else data['description']
+                
+                    signal_icon = "🟢" if signal in ['BUY', 'STRONG_BUY'] else \
+                                 "🔴" if signal in ['SELL', 'STRONG_SELL'] else "🟡"
+                
+                    print(f"{name:<20} {signal_icon}{signal:<11} {value:<15} {description}")
+        
+            # Signal-Konsens Analyse
+            print(f"\n🎯 SIGNAL-KONSENS ANALYSE:")
+            print("─" * 40)
+        
+            signal_counts = {}
+            for name, data in indicators_data.items():
+                signal = data['signal']
+                if signal not in signal_counts:
+                    signal_counts[signal] = []
+                signal_counts[signal].append(name)
+        
+            for signal, indicators in signal_counts.items():
+                count = len(indicators)
+                percentage = (count / len(indicators_data)) * 100
+            
+                signal_icon = "🟢" if signal in ['BUY', 'STRONG_BUY'] else \
+                             "🔴" if signal in ['SELL', 'STRONG_SELL'] else "🟡"
+            
+                print(f"{signal_icon} {signal}: {count} Indikatoren ({percentage:.1f}%)")
+                for indicator in indicators[:3]:  # Zeige max 3
+                    print(f"   • {indicator}")
+                if len(indicators) > 3:
+                    print(f"   • ... und {len(indicators) - 3} weitere")
+        
+            # Konflikt-Analyse
+            bullish_signals = signal_counts.get('BUY', []) + signal_counts.get('STRONG_BUY', [])
+            bearish_signals = signal_counts.get('SELL', []) + signal_counts.get('STRONG_SELL', [])
+            neutral_signals = signal_counts.get('NEUTRAL', [])
+        
+            print(f"\n⚖️ SIGNAL-VERTEILUNG:")
+            print("─" * 30)
+            print(f"🟢 Bullisch: {len(bullish_signals)} ({len(bullish_signals)/len(indicators_data)*100:.1f}%)")
+            print(f"🔴 Bearisch: {len(bearish_signals)} ({len(bearish_signals)/len(indicators_data)*100:.1f}%)")
+            print(f"🟡 Neutral: {len(neutral_signals)} ({len(neutral_signals)/len(indicators_data)*100:.1f}%)")
+        
+            # Empfehlung
+            print(f"\n💡 VERGLEICHS-FAZIT:")
+            print("─" * 25)
+        
+            if len(bullish_signals) >= len(indicators_data) * 0.6:
+                print("🚀 STARKER BULLISCHER KONSENS")
+                print("   Empfehlung: Kaufgelegenheit prüfen")
+            elif len(bearish_signals) >= len(indicators_data) * 0.6:
+                print("💥 STARKER BEARISCHER KONSENS")
+                print("   Empfehlung: Verkaufsgelegenheit prüfen")
+            elif len(bullish_signals) > len(bearish_signals):
+                print("🟢 MODERATER BULLISCHER TREND")
+                print("   Empfehlung: Vorsichtige Kaufposition möglich")
+            elif len(bearish_signals) > len(bullish_signals):
+                print("🔴 MODERATER BEARISCHER TREND")
+                print("   Empfehlung: Vorsichtige Verkaufsposition möglich")
+            else:
+                print("🟡 GEMISCHTE SIGNALE")
+                print("   Empfehlung: Abwarten oder weitere Bestätigung suchen")
+        
+            print(f"{'='*80}")
+        
+        except Exception as e:
+            print(f"❌ Indikator-Vergleich Fehler: {e}")
+
+    def indicator_testing_suite(self):
+        """Test-Suite für Indikator-Optimierung"""
+        self.print_header("INDIKATOR-TEST & OPTIMIERUNG")
+    
+        print("🧪 Indikator Test-Suite")
+        print("─" * 30)
+        print("1. Indikator-Performance Test")
+        print("2. Parameter-Optimierung")
+        print("3. Backtest-Simulation")
+        print("4. Korrelations-Analyse")
+        print("5. Zurück")
+    
+        choice = input("\n🎯 Test wählen (1-5): ").strip()
+    
+        if choice == "1":
+            self.indicator_performance_test()
+        elif choice == "2":
+            self.parameter_optimization()
+        elif choice == "3":
+            self.backtest_simulation()
+        elif choice == "4":
+            self.correlation_analysis()
+        elif choice == "5":
+            return
+        else:
+            print("❌ Ungültige Auswahl")
+
+    def indicator_performance_test(self):
+        """Testet die Performance verschiedener Indikatoren"""
+        symbol = input("💱 Symbol für Performance-Test: ").upper()
+        if not symbol:
+            print("❌ Kein Symbol eingegeben")
+            return
+    
+        print(f"\n🔄 Teste Indikator-Performance für {symbol}...")
+    
+        try:
+            # Teste verschiedene Indikatoren
+            indicators_tested = []
+        
+            # RSI Test
+            rsi_start = time.time()
+            rsi_value = self.calculate_rsi(symbol)
+            rsi_time = time.time() - rsi_start
+            if rsi_value:
+                indicators_tested.append(('RSI', rsi_time, 'Erfolgreich'))
+            else:
+                indicators_tested.append(('RSI', rsi_time, 'Fehlgeschlagen'))
+        
+            # MACD Test
+            macd_start = time.time()
+            macd_data = self.calculate_macd(symbol)
+            macd_time = time.time() - macd_start
+            if macd_data:
+                indicators_tested.append(('MACD', macd_time, 'Erfolgreich'))
+            else:
+                indicators_tested.append(('MACD', macd_time, 'Fehlgeschlagen'))
+        
+            # Erweiterte Indikatoren Test
+            if self.advanced_indicators:
+                adv_start = time.time()
+                adv_analysis = self.advanced_indicators.get_comprehensive_analysis(symbol)
+                adv_time = time.time() - adv_start
+                if adv_analysis:
+                    indicators_tested.append(('Erweiterte Indikatoren', adv_time, 'Erfolgreich'))
+                else:
+                    indicators_tested.append(('Erweiterte Indikatoren', adv_time, 'Fehlgeschlagen'))
+        
+            # Ergebnisse anzeigen
+            print(f"\n📊 PERFORMANCE-TEST ERGEBNISSE:")
+            print("─" * 50)
+            print(f"{'Indikator':<25} {'Zeit (s)':<10} {'Status'}")
+            print("─" * 50)
+        
+            for name, exec_time, status in indicators_tested:
+                status_icon = "✅" if status == 'Erfolgreich' else "❌"
+                print(f"{name:<25} {exec_time:<10.3f} {status_icon} {status}")
+        
+            total_time = sum(t[1] for t in indicators_tested)
+            success_rate = len([t for t in indicators_tested if t[2] == 'Erfolgreich']) / len(indicators_tested) * 100
+        
+            print("─" * 50)
+            print(f"Gesamtzeit: {total_time:.3f}s")
+            print(f"Erfolgsrate: {success_rate:.1f}%")
+        
+        except Exception as e:
+            print(f"❌ Performance-Test Fehler: {e}")
+
+    def parameter_optimization(self):
+        """Optimiert Parameter für Indikatoren"""
+        print("\n⚙️ PARAMETER-OPTIMIERUNG")
+        print("─" * 30)
+        print("Verfügbare Optimierungen:")
+        print("1. RSI Periode optimieren")
+        print("2. MACD Parameter optimieren")
+        print("3. Williams %R optimieren")
+        print("4. Zurück")
+    
+        choice = input("\nOptimierung wählen (1-4): ").strip()
+    
+        if choice == "1":
+            self.optimize_rsi_period()
+        elif choice == "2":
+            print("MACD Optimierung - In Entwicklung")
+        elif choice == "3":
+            print("Williams %R Optimierung - In Entwicklung")
+        elif choice == "4":
+            return
+        else:
+            print("❌ Ungültige Auswahl")
+
+    def optimize_rsi_period(self):
+        """Optimiert RSI-Periode"""
+        symbol = input("Symbol für RSI-Optimierung: ").upper()
+        if not symbol:
+            return
+    
+        print(f"\n🔄 Optimiere RSI-Periode für {symbol}...")
+    
+        try:
+            periods_to_test = [10, 12, 14, 16, 18, 20]
+            results = []
+        
+            original_period = self.rsi_period
+        
+            for period in periods_to_test:
+                self.rsi_period = period
+                rsi_value = self.calculate_rsi(symbol)
+                if rsi_value:
+                    signal, desc = self.get_rsi_signal(rsi_value)
+                    results.append((period, rsi_value, signal))
+                    print(f"Periode {period}: RSI={rsi_value:.1f}, Signal={signal}")
+        
+            # Setze ursprüngliche Periode zurück
+            self.rsi_period = original_period
+        
+            print(f"\n📊 RSI-OPTIMIERUNG ERGEBNISSE:")
+            print("─" * 40)
+            for period, rsi, signal in results:
+                print(f"Periode {period:2d}: RSI={rsi:5.1f} - {signal}")
+        
+        except Exception as e:
+            print(f"❌ RSI-Optimierung Fehler: {e}")
+
+    def backtest_simulation(self):
+        """Einfache Backtest-Simulation"""
+        print("\n📈 BACKTEST-SIMULATION")
+        print("─" * 25)
+        print("Diese Funktion ist in Entwicklung.")
+        print("Geplante Features:")
+        print("• Historische Daten-Analyse")
+        print("• Signal-Performance über Zeit")
+        print("• Win/Loss Ratio Berechnung")
+        print("• Profit Factor Analyse")
+
+    def correlation_analysis(self):
+        """Analysiert Korrelationen zwischen Indikatoren"""
+        symbol = input("💱 Symbol für Korrelations-Analyse: ").upper()
+        if not symbol:
+            return
+    
+        print(f"\n🔄 Analysiere Indikator-Korrelationen für {symbol}...")
+    
+        try:
+            # Sammle alle Indikator-Signale
+            signals = {}
+        
+            # Basis-Indikatoren
+            rsi_value = self.calculate_rsi(symbol)
+            if rsi_value:
+                rsi_signal, _ = self.get_rsi_signal(rsi_value)
+                signals['RSI'] = 1 if rsi_signal == 'BUY' else -1 if rsi_signal == 'SELL' else 0
+        
+            macd_data = self.calculate_macd(symbol)
+            if macd_data:
+                macd_signal, _ = self.get_macd_signal(macd_data)
+                signals['MACD'] = 1 if macd_signal == 'BUY' else -1 if macd_signal == 'SELL' else 0
+        
+            # Erweiterte Indikatoren
+            if self.advanced_indicators:
+                advanced_analysis = self.advanced_indicators.get_comprehensive_analysis(symbol)
+                for indicator, data in advanced_analysis.items():
+                    if 'signal' in data:
+                        signal = data['signal']
+                        signals[indicator.upper()] = 1 if signal in ['BUY', 'STRONG_BUY'] else -1 if signal in ['SELL', 'STRONG_SELL'] else 0
+        
+            # Zeige Korrelation
+            print(f"\n📊 INDIKATOR-KORRELATIONS-MATRIX:")
+            print("─" * 50)
+        
+            indicator_names = list(signals.keys())
+            for i, ind1 in enumerate(indicator_names):
+                for j, ind2 in enumerate(indicator_names):
+                    if i <= j:
+                        if i == j:
+                            correlation = 1.0
+                        else:
+                            # Einfache Korrelation (gleiche Richtung = positive Korrelation)
+                            sig1, sig2 = signals[ind1], signals[ind2]
+                            if sig1 == sig2:
+                                correlation = 1.0 if sig1 != 0 else 0.0
+                            elif sig1 == -sig2:
+                                correlation = -1.0
+                            else:
+                                correlation = 0.0
+                    
+                        print(f"{ind1} <-> {ind2}: {correlation:+.2f}")
+        
+            # Konsens-Bewertung
+            bullish_count = sum(1 for sig in signals.values() if sig > 0)
+            bearish_count = sum(1 for sig in signals.values() if sig < 0)
+            neutral_count = sum(1 for sig in signals.values() if sig == 0)
+        
+            print(f"\n🎯 SIGNAL-KONSENS:")
+            print("─" * 20)
+            print(f"Bullisch: {bullish_count}")
+            print(f"Bearisch: {bearish_count}")
+            print(f"Neutral: {neutral_count}")
+        
+            if bullish_count > bearish_count + neutral_count:
+                print("📈 Starker bullischer Konsens")
+            elif bearish_count > bullish_count + neutral_count:
+                print("📉 Starker bearischer Konsens")
+            else:
+                print("🟡 Gemischte Signale")
+        
+        except Exception as e:
+            print(f"❌ Korrelations-Analyse Fehler: {e}")
+
+    def rl_menu_enhanced(self):
+        """Erweiterte RL Menü mit Smart Training"""
+    
+        while True:
+            self.print_header("REINFORCEMENT LEARNING")
+        
+            # Auto-Detection
+            auto_symbols = self.auto_detect_trading_symbols()
+            untrained_count = sum(1 for s in auto_symbols if s not in self.rl_manager.agents or 
+                                 getattr(self.rl_manager.agents.get(s, None), 'training_step', 0) < 400)
+        
+            print("🤖 RL STATUS:")
+            print("─" * 20)
+            if self.rl_manager:
+                print(f"✅ RL Manager aktiv")
+                print(f"📊 Trainierte Agents: {len(self.rl_manager.agents)}")
+                print(f"🎯 Training Modus: {'✅' if self.rl_training_mode else '❌'}")
+                print(f"💱 Auto-Trading Symbole: {', '.join(auto_symbols[:3])}")
+                if len(auto_symbols) > 3:
+                    print(f"                        + {len(auto_symbols)-3} weitere")
+                print(f"🎯 Benötigt Training: {untrained_count}")
+            
+                # Agent Status
+                for symbol, agent in self.rl_manager.agents.items():
+                    training_steps = getattr(agent, 'training_step', 0)
+                    epsilon = getattr(agent, 'epsilon', 1.0)
+                    status = "✅" if training_steps >= 400 and epsilon < 0.1 else "🔄"
+                    print(f"   {status} {symbol}: {training_steps} Steps, ε={epsilon:.3f}")
+            else:
+                print("❌ RL Manager nicht verfügbar")
+        
+            print(f"\n📋 SMART TRAINING:")
+            print("─" * 20)
+        
+            if untrained_count > 0:
+                print(f" 🚀 ALLE {untrained_count} FEHLENDEN AGENTS TRAINIEREN")
+                print(f"    💱 Symbole: {', '.join([s for s in auto_symbols if s not in self.rl_manager.agents or getattr(self.rl_manager.agents.get(s, None), 'training_step', 0) < 400])}")
+            else:
+                print(f" ✅ ALLE AUTO-TRADING AGENTS SIND BEREIT")
+        
+            print(f"\n📋 STANDARD OPTIONEN:")
+            print("─" * 20)
+            print(" 1. 🚀 Smart Agent Training (Auto-Detect)")
+            print(" 2. 🧠 RL-Empfehlung testen")
+            print(" 3. 📊 Training-Statistiken")
+            print(" 4. 💾 Modell speichern/laden")
+            print(" 5. ⚙️ RL-Einstellungen")
+            print(" 6. 🔄 RL Auto-Trading aktivieren")
+            print(" 7. 📈 Performance Vergleich")
+            print(" 8. 🎯 Batch Training für alle Symbole")
+            print(" 9. ⬅️ Zurück")
+        
+            if untrained_count > 0:
+                print(f"\n💡 QUICK ACTION:")
+                print(f"Drücken Sie 'Q' für schnelles Training aller {untrained_count} fehlenden Agents!")
+        
+            choice = input(f"\n🎯 Ihre Wahl (1-9{', Q' if untrained_count > 0 else ''}): ").strip().upper()
+        
+            if choice == "Q" and untrained_count > 0:
+                # Quick Training
+                untrained_symbols = [s for s in auto_symbols if s not in self.rl_manager.agents or 
+                                   getattr(self.rl_manager.agents.get(s, None), 'training_step', 0) < 400]
+            
+                print(f"\n⚡ QUICK TRAINING")
+                print(f"Symbole: {', '.join(untrained_symbols)}")
+            
+                confirm = input("Alle fehlenden Agents trainieren? (ja/nein): ").lower()
+                if confirm == "ja":
+                    self.batch_train_sequential(untrained_symbols, 300)  # 300 Episodes default
+        
+            elif choice == "1":
+                self.train_rl_agent_enhanced()
+            elif choice == "2":
+                self.test_rl_recommendation()
+            elif choice == "3":
+                self.show_rl_statistics()
+            elif choice == "4":
+                self.manage_rl_models()
+            elif choice == "5":
+                self.rl_settings()
+            elif choice == "6":
+                self.toggle_rl_auto_trading()
+            elif choice == "7":
+                self.compare_rl_performance()
+            elif choice == "8":
+                # Batch Training für ALLE
+                print(f"\n🔄 BATCH TRAINING FÜR ALLE SYMBOLE")
+                print(f"Auto-Trading Symbole: {', '.join(auto_symbols)}")
+            
+                episodes = int(input("Episodes pro Symbol (Enter für 250): ") or "250")
+                mode = input("Modus (sequential/parallel, Enter für sequential): ").lower() or "sequential"
+            
+                if mode == "parallel":
+                    self.batch_train_parallel(auto_symbols, episodes)
+                else:
+                    self.batch_train_sequential(auto_symbols, episodes)
+                
+            elif choice == "9":
+                break
+            else:
+                print("❌ Ungültige Auswahl")
+        
+            input("\nDrücken Sie Enter zum Fortfahren...")
+
+    def train_rl_agent_enhanced(self):
+        """Erweiterte RL Agent Training mit automatischer Symbol-Auswahl"""
+    
+        print("\n🚀 RL AGENT TRAINING")
+        print("─" * 25)
+    
+        # AUTO-SYMBOL DETECTION
+        available_symbols = []
+    
+        # 1. Nutze aktuelle Auto-Trading Symbole
+        if hasattr(self, 'auto_trade_symbols') and self.auto_trade_symbols:
+            available_symbols.extend(self.auto_trade_symbols)
+            print(f"📊 Auto-Trading Symbole gefunden: {', '.join(self.auto_trade_symbols)}")
+    
+        # 2. Ergänze um Standard-Majors falls leer
+        if not available_symbols:
+            available_symbols = ["EURUSD", "GBPUSD", "USDJPY", "USDCHF", "AUDUSD"]
+            print(f"📊 Standard Majors werden verwendet: {', '.join(available_symbols)}")
+    
+        # 3. Filtere bereits trainierte Agents
+        untrained_symbols = []
+        trained_symbols = []
+    
+        for symbol in available_symbols:
+            if symbol in self.rl_manager.agents:
+                agent = self.rl_manager.agents[symbol]
+                training_steps = getattr(agent, 'training_step', 0)
+                epsilon = getattr(agent, 'epsilon', 1.0)
+            
+                if training_steps < 400 or epsilon > 0.1:  # Noch nicht gut trainiert
+                    untrained_symbols.append(symbol)
+                else:
+                    trained_symbols.append(symbol)
+            else:
+                untrained_symbols.append(symbol)
+    
+        print(f"\n📈 TRAINING STATUS:")
+        if trained_symbols:
+            print(f"✅ Gut trainiert: {', '.join(trained_symbols)}")
+        if untrained_symbols:
+            print(f"🎯 Benötigt Training: {', '.join(untrained_symbols)}")
+    
+        # AUSWAHL-OPTIONEN
+        print(f"\n📋 TRAINING OPTIONEN:")
+        print("─" * 25)
+        print("1. 🤖 Alle untrainierten Symbole automatisch trainieren")
+        print("2. 🎯 Spezifisches Symbol wählen")
+        print("3. 📊 Nur die besten 3 Symbole trainieren")
+        print("4. 🔄 Alle neu trainieren (überschreiben)")
+        print("5. ⬅️ Zurück")
+    
+        choice = input("\nWählen (1-5): ").strip()
+    
+        if choice == "1":
+            # Automatisches Training aller untrainierten
+            if not untrained_symbols:
+                print("✅ Alle Symbole sind bereits gut trainiert!")
+                return
+        
+            print(f"\n🚀 BATCH TRAINING")
+            print(f"Symbole: {', '.join(untrained_symbols)}")
+        
+            episodes = int(input("Episodes pro Symbol (Enter für 300): ") or "300")
+            parallel = input("Parallel trainieren? (ja/nein): ").lower() == "ja"
+        
+            if parallel:
+                self.batch_train_parallel(untrained_symbols, episodes)
+            else:
+                self.batch_train_sequential(untrained_symbols, episodes)
+    
+        elif choice == "2":
+            # Manuelle Symbol-Auswahl mit Auto-Complete
+            print(f"\n💱 VERFÜGBARE SYMBOLE:")
+            for i, symbol in enumerate(available_symbols, 1):
+                status = "✅" if symbol in trained_symbols else "🎯"
+                agent_info = ""
+                if symbol in self.rl_manager.agents:
+                    agent = self.rl_manager.agents[symbol]
+                    steps = getattr(agent, 'training_step', 0)
+                    epsilon = getattr(agent, 'epsilon', 1.0)
+                    agent_info = f"(Steps: {steps}, ε: {epsilon:.3f})"
+            
+                print(f"   {i}. {status} {symbol} {agent_info}")
+        
+            print("   0. ✍️ Manuell eingeben")
+        
+            try:
+                symbol_choice = input(f"\nSymbol wählen (0-{len(available_symbols)}): ").strip()
+            
+                if symbol_choice == "0":
+                    symbol = input("Symbol eingeben: ").upper().strip()
+                else:
+                    symbol_idx = int(symbol_choice) - 1
+                    if 0 <= symbol_idx < len(available_symbols):
+                        symbol = available_symbols[symbol_idx]
+                    else:
+                        print("❌ Ungültige Auswahl")
+                        return
+            
+                if symbol:
+                    episodes = int(input("Anzahl Episodes (Enter für 500): ") or "500")
+                    self.train_single_agent(symbol, episodes)
+                
+            except ValueError:
+                print("❌ Ungültige Eingabe")
+    
+        elif choice == "3":
+            # Top 3 Symbole automatisch
+            top_symbols = ["EURUSD", "GBPUSD", "USDJPY"]
+            top_untrained = [s for s in top_symbols if s in untrained_symbols]
+        
+            if top_untrained:
+                print(f"\n🏆 TOP 3 TRAINING: {', '.join(top_untrained)}")
+                episodes = int(input("Episodes pro Symbol (Enter für 400): ") or "400")
+                self.batch_train_sequential(top_untrained, episodes)
+            else:
+                print("✅ Top 3 Symbole sind bereits trainiert!")
+    
+        elif choice == "4":
+            # Alle neu trainieren
+            confirm = input(f"\n⚠️ ALLE {len(available_symbols)} Symbole neu trainieren? (JA/nein): ")
+            if confirm == "JA":
+                episodes = int(input("Episodes pro Symbol (Enter für 200): ") or "200")
+                self.batch_train_sequential(available_symbols, episodes)
+    
+        elif choice == "5":
+            return
+    
+    def batch_train_sequential(self, symbols, episodes):
+        """Trainiert mehrere Symbole nacheinander"""
+    
+        print(f"\n🔄 SEQUENZIELLES BATCH TRAINING")
+        print(f"Symbole: {len(symbols)} | Episodes: {episodes} pro Symbol")
+        print(f"Geschätzte Gesamtdauer: {len(symbols) * episodes // 50} Minuten")
+    
+        confirm = input("\nStarten? (ja/nein): ").lower()
+        if confirm != "ja":
+            return
+    
+        def batch_worker():
+            try:
+                for i, symbol in enumerate(symbols, 1):
+                    print(f"\n🎯 [{i}/{len(symbols)}] Training {symbol}...")
+                    success = self.rl_manager.train_agent(symbol, episodes)
+                
+                    if success:
+                        # Automatisch speichern
+                        model_path = f"{self.rl_manager.model_directory}/{symbol}_batch_{episodes}.h5"
+                        self.rl_manager.agents[symbol].save_model(model_path)
+                        print(f"✅ {symbol} abgeschlossen und gespeichert")
+                    else:
+                        print(f"❌ {symbol} fehlgeschlagen")
+                
+                    # Kurze Pause zwischen Trainings
+                    if i < len(symbols):
+                        print("⏸️ Kurze Pause...")
+                        time.sleep(2)
+            
+                print(f"\n🎉 BATCH TRAINING ABGESCHLOSSEN!")
+                print(f"✅ {len(symbols)} Symbole trainiert")
+            
+            except Exception as e:
+                print(f"💥 Batch Training Fehler: {e}")
+    
+        # Training in separatem Thread
+        training_thread = threading.Thread(target=batch_worker, daemon=True)
+        training_thread.start()
+    
+        print("🔄 Batch Training läuft im Hintergrund...")
+        print("💡 Sie können andere Menüs verwenden")
+
+    def batch_train_parallel(self, symbols, episodes):
+        """Trainiert mehrere Symbole parallel (experimentell)"""
+    
+        print(f"\n⚡ PARALLELES TRAINING (EXPERIMENTELL)")
+        print(f"⚠️ Warnung: Sehr ressourcenintensiv!")
+    
+        max_parallel = min(3, len(symbols))  # Maximal 3 parallel
+        print(f"📊 Parallel: {max_parallel} Symbole gleichzeitig")
+    
+        confirm = input("Wirklich parallel trainieren? (ja/nein): ").lower()
+        if confirm != "ja":
+            self.batch_train_sequential(symbols, episodes)
+            return
+    
+        import concurrent.futures
+    
+        def train_worker(symbol):
+            try:
+                return self.rl_manager.train_agent(symbol, episodes)
+            except Exception as e:
+                print(f"❌ {symbol} Parallel-Training Fehler: {e}")
+                return False
+    
+        def parallel_worker():
+            try:
+                with concurrent.futures.ThreadPoolExecutor(max_workers=max_parallel) as executor:
+                    # Starte alle Trainings
+                    futures = {executor.submit(train_worker, symbol): symbol for symbol in symbols}
+                
+                    # Warte auf Ergebnisse
+                    for future in concurrent.futures.as_completed(futures):
+                        symbol = futures[future]
+                        try:
+                            success = future.result()
+                            if success:
+                                print(f"✅ {symbol} parallel Training abgeschlossen")
+                            else:
+                                print(f"❌ {symbol} parallel Training fehlgeschlagen")
+                        except Exception as e:
+                            print(f"❌ {symbol} parallel Fehler: {e}")
+            
+                print(f"🎉 PARALLEL TRAINING ABGESCHLOSSEN!")
+            
+            except Exception as e:
+                print(f"💥 Parallel Training Fehler: {e}")
+    
+        # Parallel Training starten
+        parallel_thread = threading.Thread(target=parallel_worker, daemon=True)
+        parallel_thread.start()
+    
+        print("⚡ Parallel Training läuft im Hintergrund...")
+
+    def train_single_agent(self, symbol, episodes):
+        """Trainiert einen einzelnen Agent mit verbesserter UI"""
+    
+        print(f"\n🎯 EINZELTRAINING: {symbol}")
+        print("─" * 30)
+    
+        # Status-Check
+        if symbol in self.rl_manager.agents:
+            agent = self.rl_manager.agents[symbol]
+            current_steps = getattr(agent, 'training_step', 0)
+            current_epsilon = getattr(agent, 'epsilon', 1.0)
+        
+            print(f"📊 Aktueller Status:")
+            print(f"   Steps: {current_steps}")
+            print(f"   Epsilon: {current_epsilon:.3f}")
+        
+            if current_steps > 400 and current_epsilon < 0.1:
+                override = input("⚠️ Agent bereits gut trainiert. Überschreiben? (ja/nein): ").lower()
+                if override != "ja":
+                    return
+    
+        print(f"📊 Training Setup:")
+        print(f"   Symbol: {symbol}")
+        print(f"   Episodes: {episodes}")
+        print(f"   Geschätzte Dauer: {episodes//50} Minuten")
+    
+        confirm = input("\nTraining starten? (ja/nein): ").lower()
+        if confirm != "ja":
+            return
+    
+        # Training mit Progress
+        def training_worker():
+            try:
+                print(f"🤖 Starte Training für {symbol}...")
+                success = self.rl_manager.train_agent(symbol, episodes)
+            
+                if success:
+                    print(f"✅ Training für {symbol} erfolgreich!")
+                
+                    # Auto-Save mit Timestamp
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M")
+                    model_path = f"{self.rl_manager.model_directory}/{symbol}_{timestamp}.h5"
+                    self.rl_manager.agents[symbol].save_model(model_path)
+                    print(f"💾 Modell gespeichert: {model_path}")
+                else:
+                    print(f"❌ Training für {symbol} fehlgeschlagen")
+                
+            except Exception as e:
+                print(f"💥 Training Fehler: {e}")
+    
+        # Training starten
+        training_thread = threading.Thread(target=training_worker, daemon=True)
+        training_thread.start()
+    
+        print("🔄 Training läuft im Hintergrund...")
+
+    def auto_detect_trading_symbols(self):
+        """Automatische Erkennung der zu trainierenden Symbole"""
+    
+        symbols = set()
+    
+        # 1. Auto-Trading Symbole
+        if hasattr(self, 'auto_trade_symbols') and self.auto_trade_symbols:
+            symbols.update(self.auto_trade_symbols)
+    
+        # 2. Favoriten
+        if hasattr(self, 'custom_pairs') and 'user_favorites' in self.custom_pairs:
+            symbols.update(self.custom_pairs['user_favorites']['pairs'])
+    
+        # 3. Aktuelle offene Positionen
+        if self.mt5_connected:
+            try:
+                positions = mt5.positions_get()
+                if positions:
+                    for pos in positions:
+                        symbols.add(pos.symbol)
+            except:
+                pass
+    
+        # 4. Standard-Fallback
+        if not symbols:
+            symbols = {"EURUSD", "GBPUSD", "USDJPY"}
+    
+        return sorted(list(symbols))
+
+    def test_rl_recommendation(self):
+        """Testet RL-Empfehlung für Symbol"""
+    
+        print("\n🧠 RL EMPFEHLUNG TESTEN")
+        print("─" * 25)
+    
+        if not self.rl_manager.agents:
+            print("❌ Keine trainierten Agents verfügbar")
+            print("💡 Trainieren Sie zuerst einen Agent (Option 1)")
+            return
+    
+        # Verfügbare Agents anzeigen
+        print("📊 Verfügbare Agents:")
+        for i, symbol in enumerate(self.rl_manager.agents.keys(), 1):
+            agent = self.rl_manager.agents[symbol]
+            steps = getattr(agent, 'training_step', 0)
+            print(f"   {i}. {symbol} ({steps} Trainingssteps)")
+    
+        # Symbol auswählen
+        symbol = input("\nSymbol für Test: ").upper().strip()
+        if symbol not in self.rl_manager.agents:
+            print(f"❌ Kein trainierter Agent für {symbol}")
+            return
+    
+        try:
+            print(f"🔍 Hole RL-Empfehlung für {symbol}...")
+        
+            # RL Empfehlung
+            rl_result = self.rl_manager.get_rl_recommendation(symbol)
+        
+            if rl_result:
+                print(f"\n🤖 RL EMPFEHLUNG:")
+                print("─" * 20)
+                print(f"📊 Aktion: {rl_result['recommendation']}")
+                print(f"🎯 Konfidenz: {rl_result['confidence']:.1f}%")
+                print(f"💡 Begründung: {rl_result['reasoning']}")
+            
+                if rl_result['q_values']:
+                    print(f"\n📈 Q-Values:")
+                    actions = ['HOLD', 'BUY', 'SELL']
+                    for i, (action, q_val) in enumerate(zip(actions, rl_result['q_values'])):
+                        print(f"   {action}: {q_val:.4f}")
+            
+                # Vergleiche mit traditionellen Indikatoren
+                print(f"\n📊 VERGLEICH MIT TRADITIONELLEN INDIKATOREN:")
+                print("─" * 45)
+            
+                # RSI
+                rsi = self.calculate_rsi(symbol)
+                if rsi:
+                    rsi_signal, rsi_desc = self.get_rsi_signal(rsi)
+                    print(f"📈 RSI: {rsi_signal} ({rsi_desc})")
+            
+                # MACD
+                macd_data = self.calculate_macd(symbol)
+                if macd_data:
+                    macd_signal, macd_desc = self.get_macd_signal(macd_data)
+                    print(f"📊 MACD: {macd_signal} ({macd_desc[:30]}...)")
+            
+                # Consensus
+                signals = []
+                if rsi and rsi_signal in ['BUY', 'SELL']:
+                    signals.append(rsi_signal)
+                if macd_data and macd_signal in ['BUY', 'SELL']:
+                    signals.append(macd_signal)
+            
+                rl_signal = rl_result['recommendation']
+                signals.append(rl_signal)
+            
+                buy_count = signals.count('BUY')
+                sell_count = signals.count('SELL')
+            
+                print(f"\n🎯 CONSENSUS:")
+                print(f"   BUY Signale: {buy_count}")
+                print(f"   SELL Signale: {sell_count}")
+                print(f"   RL Gewichtung: {self.rl_recommendation_weight}")
+            
+                if buy_count > sell_count:
+                    consensus = "BUY"
+                elif sell_count > buy_count:
+                    consensus = "SELL"
+                else:
+                    consensus = "NEUTRAL"
+            
+                print(f"   Consensus: {consensus}")
+            
+            else:
+                print("❌ RL-Empfehlung konnte nicht abgerufen werden")
+            
+        except Exception as e:
+            print(f"❌ Fehler beim Testen: {e}")
+
+    def show_rl_statistics(self):
+        """Zeigt RL Training-Statistiken"""
+    
+        print("\n📊 RL TRAINING-STATISTIKEN")
+        print("─" * 30)
+    
+        if not self.rl_manager.training_stats:
+            print("❌ Keine Statistiken verfügbar")
+            print("💡 Trainieren Sie zuerst einen Agent")
+            return
+    
+        for symbol, stats in self.rl_manager.training_stats.items():
+            print(f"\n🎯 {symbol}:")
+            print(f"   Episodes: {stats['episodes']}")
+            print(f"   Finaler Reward: {stats['final_reward']:.2f}")
+            print(f"   Durchschnitt: {stats['avg_reward']:.2f}")
+            print(f"   Bester Reward: {stats['best_reward']:.2f}")
+        
+            # Agent Info
+            if symbol in self.rl_manager.agents:
+                agent = self.rl_manager.agents[symbol]
+                print(f"   Training Steps: {getattr(agent, 'training_step', 0)}")
+                print(f"   Epsilon: {getattr(agent, 'epsilon', 0):.4f}")
+                print(f"   Memory Size: {len(getattr(agent, 'memory', []))}")
+
+    def manage_rl_models(self):
+        """Verwaltet RL Modelle (Speichern/Laden)"""
+    
+        print("\n💾 RL MODELL-VERWALTUNG")
+        print("─" * 25)
+    
+        print("1. 💾 Modell speichern")
+        print("2. 📁 Modell laden")
+        print("3. 📂 Verfügbare Modelle anzeigen")
+        print("4. 🗑️ Modell löschen")
+    
+        choice = input("\nWählen (1-4): ").strip()
+    
+        if choice == "1":
+            # Modell speichern
+            if not self.rl_manager.agents:
+                print("❌ Keine Agents zum Speichern")
+                return
+        
+            print("\n📊 Verfügbare Agents:")
+            for symbol in self.rl_manager.agents.keys():
+                print(f"   - {symbol}")
+        
+            symbol = input("Symbol zum Speichern: ").upper().strip()
+            if symbol in self.rl_manager.agents:
+                filename = input(f"Dateiname (Enter für {symbol}_manual.h5): ").strip()
+                if not filename:
+                    filename = f"{symbol}_manual.h5"
+            
+                if not filename.endswith('.h5'):
+                    filename += '.h5'
+            
+                filepath = f"{self.rl_manager.model_directory}/{filename}"
+                self.rl_manager.agents[symbol].save_model(filepath)
+                print(f"✅ Modell gespeichert: {filepath}")
+            else:
+                print(f"❌ Kein Agent für {symbol}")
+    
+        elif choice == "2":
+            # Modell laden
+            import os
+            models_dir = self.rl_manager.model_directory
+        
+            if not os.path.exists(models_dir):
+                print(f"❌ Model Directory nicht gefunden: {models_dir}")
+                return
+        
+            # Verfügbare Modelle anzeigen
+            model_files = [f for f in os.listdir(models_dir) if f.endswith('.h5')]
+        
+            if not model_files:
+                print("❌ Keine gespeicherten Modelle gefunden")
+                return
+        
+            print("\n📁 Verfügbare Modelle:")
+            for i, model_file in enumerate(model_files, 1):
+                print(f"   {i}. {model_file}")
+        
+            try:
+                model_choice = int(input(f"\nModell wählen (1-{len(model_files)}): ")) - 1
+                if 0 <= model_choice < len(model_files):
+                    selected_model = model_files[model_choice]
+                    filepath = os.path.join(models_dir, selected_model)
+                
+                    # Symbol extrahieren
+                    symbol = selected_model.split('_')[0].upper()
+                
+                    # Agent erstellen wenn nicht vorhanden
+                    if symbol not in self.rl_manager.agents:
+                        success = self.rl_manager.initialize_agent(symbol)
+                        if not success:
+                            print(f"❌ Agent Initialisierung für {symbol} fehlgeschlagen")
+                            return
+                
+                    # Modell laden
+                    success = self.rl_manager.agents[symbol].load_model(filepath)
+                    if success:
+                        print(f"✅ Modell geladen für {symbol}")
+                    else:
+                        print(f"❌ Fehler beim Laden des Modells")
+                else:
+                    print("❌ Ungültige Auswahl")
+            except ValueError:
+                print("❌ Ungültige Eingabe")
+    
+        elif choice == "3":
+            # Verfügbare Modelle anzeigen
+            import os
+            models_dir = self.rl_manager.model_directory
+        
+            if os.path.exists(models_dir):
+                model_files = [f for f in os.listdir(models_dir) if f.endswith('.h5')]
+            
+                if model_files:
+                    print(f"\n📂 Modelle in {models_dir}:")
+                    for model_file in model_files:
+                        filepath = os.path.join(models_dir, model_file)
+                        size = os.path.getsize(filepath) / 1024  # KB
+                        modified = datetime.fromtimestamp(os.path.getmtime(filepath))
+                        print(f"   📄 {model_file} ({size:.1f} KB, {modified.strftime('%d.%m.%Y %H:%M')})")
+                else:
+                    print("❌ Keine Modelle gefunden")
+            else:
+                print(f"❌ Model Directory nicht gefunden: {models_dir}")
+
+    def rl_settings(self):
+        """RL Einstellungen verwalten"""
+    
+        print("\n⚙️ RL EINSTELLUNGEN")
+        print("─" * 20)
+    
+        print(f"Aktuelle Einstellungen:")
+        print(f"   🎯 RL Empfehlungsgewicht: {self.rl_recommendation_weight}")
+        print(f"   📊 Training Episodes: {self.rl_manager.training_episodes}")
+        print(f"   💾 Save Frequency: {self.rl_manager.model_save_frequency}")
+    
+        print(f"\nOptionen:")
+        print("1. 🎯 Empfehlungsgewicht ändern")
+        print("2. 📊 Training-Parameter anpassen")
+        print("3. 🔄 Zurück")
+    
+        choice = input("\nWählen (1-3): ").strip()
+    
+        if choice == "1":
+            try:
+                new_weight = float(input(f"Neues Gewicht (0.0-1.0, aktuell {self.rl_recommendation_weight}): "))
+                if 0.0 <= new_weight <= 1.0:
+                    old_weight = self.rl_recommendation_weight
+                    self.rl_recommendation_weight = new_weight
+                    print(f"✅ Gewicht geändert: {old_weight} -> {new_weight}")
+                else:
+                    print("❌ Gewicht muss zwischen 0.0 und 1.0 liegen")
+            except ValueError:
+                print("❌ Ungültige Eingabe")
+    
+        elif choice == "2":
+            try:
+                print(f"\nTraining-Parameter:")
+            
+                new_episodes = int(input(f"Episodes (aktuell {self.rl_manager.training_episodes}): ") or str(self.rl_manager.training_episodes))
+                if 100 <= new_episodes <= 10000:
+                    self.rl_manager.training_episodes = new_episodes
+                    print(f"✅ Training Episodes: {new_episodes}")
+            
+                new_save_freq = int(input(f"Save Frequency (aktuell {self.rl_manager.model_save_frequency}): ") or str(self.rl_manager.model_save_frequency))
+                if 10 <= new_save_freq <= 1000:
+                    self.rl_manager.model_save_frequency = new_save_freq
+                    print(f"✅ Save Frequency: {new_save_freq}")
+                
+            except ValueError:
+                print("❌ Ungültige Eingabe")
+
+    def toggle_rl_auto_trading(self):
+        """Aktiviert/Deaktiviert RL Auto-Trading"""
+    
+        print("\n🔄 RL AUTO-TRADING")
+        print("─" * 20)
+    
+        if not self.rl_manager.agents:
+            print("❌ Keine trainierten Agents verfügbar")
+            print("💡 Trainieren Sie zuerst einen Agent")
+            return
+    
+        # Status anzeigen
+        print(f"Status: {'✅ Aktiviert' if self.rl_training_mode else '❌ Deaktiviert'}")
+        print(f"Verfügbare Agents: {list(self.rl_manager.agents.keys())}")
+    
+        if self.rl_training_mode:
+            choice = input("RL Auto-Trading deaktivieren? (ja/nein): ").lower()
+            if choice == "ja":
+                self.rl_training_mode = False
+                print("✅ RL Auto-Trading deaktiviert")
+        else:
+            choice = input("RL Auto-Trading aktivieren? (ja/nein): ").lower()
+            if choice == "ja":
+                self.rl_training_mode = True
+                print("✅ RL Auto-Trading aktiviert")
+                print("💡 RL-Empfehlungen werden nun in Auto-Trading berücksichtigt")
+
+    def compare_rl_performance(self):
+        """Vergleicht RL Performance mit traditionellen Methoden"""
+    
+        print("\n📈 PERFORMANCE VERGLEICH")
+        print("─" * 30)
+    
+        if not self.rl_manager.agents:
+            print("❌ Keine trainierten Agents für Vergleich")
+            return
+    
+        symbol = input("Symbol für Vergleich: ").upper().strip()
+        if symbol not in self.rl_manager.agents:
+            print(f"❌ Kein RL Agent für {symbol}")
+            return
+    
+        try:
+            print(f"\n🔍 Vergleiche Methoden für {symbol}...")
+        
+            # RL Empfehlung
+            rl_result = self.rl_manager.get_rl_recommendation(symbol)
+        
+            # Traditionelle Indikatoren
+            rsi = self.calculate_rsi(symbol)
+            macd_data = self.calculate_macd(symbol)
+            sr_data = self.calculate_support_resistance(symbol)
+        
+            print(f"\n📊 SIGNALE VERGLEICH:")
+            print("─" * 25)
+        
+            # RL
+            if rl_result:
+                print(f"🤖 RL Agent: {rl_result['recommendation']} (Konfidenz: {rl_result['confidence']:.1f}%)")
+        
+            # RSI
+            if rsi:
+                rsi_signal, rsi_desc = self.get_rsi_signal(rsi)
+                print(f"📈 RSI: {rsi_signal} ({rsi})")
+        
+            # MACD
+            if macd_data:
+                macd_signal, macd_desc = self.get_macd_signal(macd_data)
+                print(f"📊 MACD: {macd_signal}")
+        
+            # Support/Resistance
+            if sr_data:
+                current_price = sr_data['current_price']
+                sr_signal, sr_desc = self.get_sr_signal(sr_data, current_price)
+                print(f"🎯 S/R: {sr_signal}")
+        
+            # Consensus Berechnung
+            signals = []
+            if rl_result:
+                signals.append(('RL', rl_result['recommendation'], self.rl_recommendation_weight))
+            if rsi:
+                rsi_signal, _ = self.get_rsi_signal(rsi)
+                signals.append(('RSI', rsi_signal, 0.2))
+            if macd_data:
+                macd_signal, _ = self.get_macd_signal(macd_data)
+                signals.append(('MACD', macd_signal, 0.3))
+            if sr_data:
+                sr_signal, _ = self.get_sr_signal(sr_data, current_price)
+                signals.append(('S/R', sr_signal, 0.2))
+        
+            # Gewichteter Consensus
+            buy_weight = sum(weight for method, signal, weight in signals if signal == 'BUY')
+            sell_weight = sum(weight for method, signal, weight in signals if signal == 'SELL')
+        
+            print(f"\n🎯 GEWICHTETER CONSENSUS:")
+            print(f"   BUY Gewicht: {buy_weight:.2f}")
+            print(f"   SELL Gewicht: {sell_weight:.2f}")
+        
+            if buy_weight > sell_weight:
+                final_recommendation = "BUY"
+                confidence = buy_weight / (buy_weight + sell_weight) * 100
+            elif sell_weight > buy_weight:
+                final_recommendation = "SELL" 
+                confidence = sell_weight / (buy_weight + sell_weight) * 100
+            else:
+                final_recommendation = "NEUTRAL"
+                confidence = 50
+        
+            print(f"   Final: {final_recommendation} (Konfidenz: {confidence:.1f}%)")
+        
+            # RL Vorteil hervorheben
+            print(f"\n🤖 RL VORTEILE:")
+            print("   • Lernt aus historischen Mustern")
+            print("   • Berücksichtigt komplexe Interaktionen")
+            print("   • Passt sich an Marktveränderungen an")
+            print("   • Optimiert für maximale Profitabilität")
+        
+        except Exception as e:
+            print(f"❌ Vergleich Fehler: {e}")
+
+    def show_individual_advanced_indicators(self):
+        """Zeigt einzelne erweiterte Indikatoren zur Auswahl"""
+        while True:
+            self.print_header("EINZELNE ERWEITERTE INDIKATOREN")
+        
+            print("📊 Verfügbare Indikatoren:")
+            print("─" * 35)
+        
+            indicator_menu = [
+                ("1", "📈", "Williams %R"),
+                ("2", "📊", "Commodity Channel Index (CCI)"),
+                ("3", "🌊", "Awesome Oscillator"),
+                ("4", "☁️", "Ichimoku Cloud"),
+                ("5", "📊", "VWAP (Volume Weighted Average Price)"),
+                ("6", "💰", "Money Flow Index (MFI)"),
+                ("7", "📈", "Average Directional Index (ADX)"),
+                ("8", "📊", "Alle Indikatoren anzeigen"),
+                ("9", "⬅️", "Zurück")
+            ]
+        
+            for num, icon, desc in indicator_menu:
+                print(f" {num}. {icon} {desc}")
+        
+            print("─" * 35)
+        
+            choice = input("🎯 Indikator wählen (1-9): ").strip()
+        
+            if choice == "9":
+                break
+            elif choice in ["1", "2", "3", "4", "5", "6", "7", "8"]:
+                symbol = input("💱 Symbol eingeben: ").upper()
+                if symbol:
+                    self.display_selected_indicator(choice, symbol)
+            else:
+                print("❌ Ungültige Auswahl")
+        
+            input("\nDrücken Sie Enter zum Fortfahren...")
+
+    def display_selected_indicator(self, indicator_choice, symbol):
+        """Zeigt einen spezifischen Indikator an"""
+        if not self.advanced_indicators:
+            print("❌ Erweiterte Indikatoren nicht verfügbar")
+            return
+    
+        try:
+            print(f"\n📊 Berechne Indikator für {symbol}...")
+        
+            if indicator_choice == "1":
+                # Williams %R
+                wr_data = self.advanced_indicators.calculate_williams_r(symbol)
+                if wr_data:
+                    print(f"\n📈 WILLIAMS %R ANALYSE:")
+                    print(f"Wert: {wr_data['value']}%")
+                    print(f"Signal: {wr_data['signal']}")
+                    print(f"Beschreibung: {wr_data['description']}")
+                    print(f"Überkauft Level: {wr_data['overbought_level']}")
+                    print(f"Überverkauft Level: {wr_data['oversold_level']}")
+        
+            elif indicator_choice == "2":
+                # CCI
+                cci_data = self.advanced_indicators.calculate_cci(symbol)
+                if cci_data:
+                    print(f"\n📊 COMMODITY CHANNEL INDEX:")
+                    print(f"Wert: {cci_data['value']}")
+                    print(f"Signal: {cci_data['signal']}")
+                    print(f"Beschreibung: {cci_data['description']}")
+        
+            elif indicator_choice == "3":
+                # Awesome Oscillator
+                ao_data = self.advanced_indicators.calculate_awesome_oscillator(symbol)
+                if ao_data:
+                    print(f"\n🌊 AWESOME OSCILLATOR:")
+                    print(f"Wert: {ao_data['value']}")
+                    print(f"Signal: {ao_data['signal']}")
+                    print(f"Beschreibung: {ao_data['description']}")
+                    print(f"Über Nulllinie: {ao_data['above_zero']}")
+                    print(f"Momentum: {ao_data['momentum']}")
+        
+            elif indicator_choice == "4":
+                # Ichimoku
+                ichimoku_data = self.advanced_indicators.calculate_ichimoku(symbol)
+                if ichimoku_data:
+                    print(f"\n☁️ ICHIMOKU CLOUD ANALYSE:")
+                    print(f"Tenkan-sen: {ichimoku_data['tenkan_sen']}")
+                    print(f"Kijun-sen: {ichimoku_data['kijun_sen']}")
+                    print(f"Cloud Top: {ichimoku_data['cloud_top']}")
+                    print(f"Cloud Bottom: {ichimoku_data['cloud_bottom']}")
+                    print(f"Preis vs Cloud: {ichimoku_data['price_vs_cloud']}")
+                    print(f"Cloud Signal: {ichimoku_data['cloud_signal']}")
+                    print(f"TK Signal: {ichimoku_data['tk_signal']}")
+                    print(f"Gesamtsignal: {ichimoku_data['overall_signal']}")
+        
+            elif indicator_choice == "5":
+                # VWAP
+                vwap_data = self.advanced_indicators.calculate_vwap(symbol)
+                if vwap_data:
+                    print(f"\n📊 VWAP ANALYSE:")
+                    print(f"VWAP: {vwap_data['vwap']}")
+                    print(f"Aktueller Preis: {vwap_data['current_price']}")
+                    print(f"Abstand: {vwap_data['distance_pct']}%")
+                    print(f"Signal: {vwap_data['signal']}")
+                    print(f"Beschreibung: {vwap_data['description']}")
+        
+            elif indicator_choice == "6":
+                # MFI
+                mfi_data = self.advanced_indicators.calculate_mfi(symbol)
+                if mfi_data:
+                    print(f"\n💰 MONEY FLOW INDEX:")
+                    print(f"Wert: {mfi_data['value']}")
+                    print(f"Signal: {mfi_data['signal']}")
+                    print(f"Beschreibung: {mfi_data['description']}")
+        
+            elif indicator_choice == "7":
+                # ADX
+                adx_data = self.advanced_indicators.calculate_adx(symbol)
+                if adx_data:
+                    print(f"\n📈 AVERAGE DIRECTIONAL INDEX:")
+                    print(f"ADX: {adx_data['adx']}")
+                    print(f"DI+: {adx_data['di_plus']}")
+                    print(f"DI-: {adx_data['di_minus']}")
+                    print(f"Trend-Stärke: {adx_data['trend_strength']}")
+                    print(f"Trend-Richtung: {adx_data['trend_direction']}")
+                    print(f"Signal: {adx_data['signal']}")
+        
+            elif indicator_choice == "8":
+                # Alle Indikatoren
+                analysis = self.advanced_indicators.get_comprehensive_analysis(symbol)
+                if analysis:
+                    self.advanced_indicators.print_analysis_report(symbol, analysis)
+        
+        except Exception as e:
+            print(f"❌ Fehler bei Indikator-Berechnung: {e}")
+
+    def comprehensive_technical_analysis(self):
+        """Vollständige technische Analyse mit allen verfügbaren Indikatoren"""
+        self.print_header("VOLLSTÄNDIGE TECHNISCHE ANALYSE")
+    
+        symbol = input("💱 Symbol für vollständige Analyse: ").upper()
+        if not symbol:
+            print("❌ Kein Symbol eingegeben")
+            return
+    
+        print(f"\n🔄 Führe vollständige Analyse für {symbol} durch...")
+        print("─" * 60)
+    
+        try:
+            # 1. Basis-Indikatoren (Ihr bestehender Code)
+            print("📊 BASIS-INDIKATOREN:")
+            print("─" * 30)
+        
+            # RSI
+            rsi_value = self.calculate_rsi(symbol)
+            if rsi_value:
+                rsi_signal, rsi_desc = self.get_rsi_signal(rsi_value)
+                icon = "🟢" if rsi_signal == "BUY" else "🔴" if rsi_signal == "SELL" else "🟡"
+                print(f"{icon} RSI: {rsi_value} - {rsi_desc}")
+        
+            # MACD
+            macd_data = self.calculate_macd(symbol)
+            if macd_data:
+                macd_signal, macd_desc = self.get_macd_signal(macd_data)
+                icon = "🟢" if macd_signal == "BUY" else "🔴" if macd_signal == "SELL" else "🟡"
+                print(f"{icon} MACD: {macd_desc}")
+        
+            # Support/Resistance
+            sr_data = self.calculate_support_resistance(symbol)
+            if sr_data:
+                current_price = sr_data['current_price']
+                sr_signal, sr_desc = self.get_sr_signal(sr_data, current_price)
+                icon = "🟢" if sr_signal == "BUY" else "🔴" if sr_signal == "SELL" else "🟡"
+                print(f"{icon} S/R: {sr_desc}")
+        
+            # 2. Erweiterte Indikatoren
+            if self.advanced_indicators:
+                print("\n📈 ERWEITERTE INDIKATOREN:")
+                print("─" * 30)
+            
+                advanced_analysis = self.advanced_indicators.get_comprehensive_analysis(symbol)
+                if advanced_analysis:
+                    self.advanced_indicators.print_analysis_report(symbol, advanced_analysis)
+        
+            # 3. Gesamtbewertung
+            if self.integration:
+                print("\n🎯 GESAMTBEWERTUNG:")
+                print("─" * 30)
+            
+                trading_signal = self.integration.create_trading_signal(symbol, use_advanced=True)
+            
+                signal_icon = "🚀" if trading_signal['signal'] == "STRONG_BUY" else \
+                             "🟢" if trading_signal['signal'] == "BUY" else \
+                             "💥" if trading_signal['signal'] == "STRONG_SELL" else \
+                             "🔴" if trading_signal['signal'] == "SELL" else "🟡"
+            
+                print(f"{signal_icon} SIGNAL: {trading_signal['signal']}")
+                print(f"🎯 KONFIDENZ: {trading_signal['confidence']}")
+                print(f"📊 ANALYSIERTE INDIKATOREN: {trading_signal['total_indicators']}")
+            
+                if trading_signal.get('buy_ratio', 0) > 0 or trading_signal.get('sell_ratio', 0) > 0:
+                    print(f"📈 Bullisch: {trading_signal.get('buy_ratio', 0):.1%}")
+                    print(f"📉 Bearisch: {trading_signal.get('sell_ratio', 0):.1%}")
+            
+                # Top-Signale anzeigen
+                if trading_signal.get('supporting_signals'):
+                    print(f"\n✅ TOP UNTERSTÜTZENDE SIGNALE:")
+                    for i, signal in enumerate(trading_signal['supporting_signals'][:5], 1):
+                        print(f"{i}. {signal}")
+        
+            print("─" * 60)
+        
+        except Exception as e:
+            print(f"❌ Vollständige Analyse Fehler: {e}")
+
+    def currency_pair_management_menu(self):
+        """Vollständiges Währungspaar-Management ohne externe Abhängigkeiten"""
+    
+        # NOTFALL-INITIALISIERUNG (falls Attribute fehlen)
+        if not hasattr(self, 'custom_pairs'):
+            self.custom_pairs = {
+                "user_favorites": {
+                    "name": "Meine Favoriten",
+                    "pairs": [],
+                    "description": "Ihre persönlichen Lieblings-Paare"
+                }
+            }
+    
+        # Vordefinierte Listen direkt hier
+        predefined_lists = {
+            "major": {
+                "name": "Majors (Hauptwährungspaare)",
+                "pairs": ["EURUSD", "GBPUSD", "USDJPY", "USDCHF", "AUDUSD", "USDCAD", "NZDUSD"],
+                "description": "Die 7 wichtigsten Forex-Paare"
+            },
+            "eur_cross": {
+                "name": "EUR Cross-Paare", 
+                "pairs": ["EURUSD", "EURGBP", "EURJPY", "EURCHF", "EURAUD", "EURCAD", "EURNZD"],
+                "description": "Euro-basierte Währungspaare"
+            },
+            "gbp_cross": {
+                "name": "GBP Cross-Paare",
+                "pairs": ["GBPUSD", "EURGBP", "GBPJPY", "GBPCHF", "GBPAUD", "GBPCAD", "GBPNZD"],
+                "description": "Pfund-basierte Währungspaare"
+            },
+            "conservative": {
+                "name": "Konservative Auswahl",
+                "pairs": ["EURUSD", "GBPUSD", "USDCHF"],
+                "description": "Stabile, gut vorhersagbare Paare"
+            },
+            "volatile": {
+                "name": "Volatile Paare",
+                "pairs": ["GBPJPY", "GBPAUD", "EURJPY", "AUDJPY", "GBPNZD"],
+                "description": "Hochvolatile Paare für erfahrene Trader"
+            },
+            "safe_haven": {
+                "name": "Safe Haven",
+                "pairs": ["USDCHF", "USDJPY", "CHFJPY", "XAUUSD"],
+                "description": "Sichere Häfen"
+            }
+        }
+    
+        while True:
+            self.print_header("WÄHRUNGSPAAR MANAGEMENT")
+        
+            print("📋 AKTUELLE KONFIGURATION:")
+            print("─" * 40)
+        
+            if hasattr(self, 'auto_trade_symbols') and self.auto_trade_symbols:
+                print(f"📊 Auto-Trading Paare: {len(self.auto_trade_symbols)}")
+                for i, symbol in enumerate(self.auto_trade_symbols[:5], 1):
+                    print(f"   {i}. {symbol}")
+                if len(self.auto_trade_symbols) > 5:
+                    print(f"   ... und {len(self.auto_trade_symbols) - 5} weitere")
+            else:
+                print("❌ Keine Auto-Trading Paare konfiguriert")
+        
+            favorites = self.custom_pairs["user_favorites"]["pairs"]
+            if favorites:
+                print(f"💾 Favoriten: {len(favorites)} - {', '.join(favorites[:3])}")
+                if len(favorites) > 3:
+                    print(f"            ... und {len(favorites) - 3} weitere")
+        
+            print(f"\n📋 OPTIONEN:")
+            print("─" * 15)
+            print(" 1. 🔧 Vordefinierte Liste wählen")
+            print(" 2. ✍️ Manuell eingeben")
+            print(" 3. 💾 Favoriten verwalten")
+            print(" 4. 📊 Verfügbare Paare anzeigen")
+            print(" 5. 🔍 Paar-Verfügbarkeit prüfen")
+            print(" 6. 📈 Performance-Analyse")
+            print(" 7. ⬅️ Zurück")
+        
+            choice = input("\n🎯 Ihre Wahl (1-7): ").strip()
+        
+            if choice == "1":
+                # Vordefinierte Listen anzeigen
+                print(f"\n📋 VORDEFINIERTE LISTEN:")
+                print("─" * 30)
+            
+                list_options = {}
+                counter = 1
+            
+                for key, config in predefined_lists.items():
+                    list_options[str(counter)] = (key, config)
+                    print(f" {counter}. {config['name']} ({len(config['pairs'])} Paare)")
+                    print(f"    💡 {config['description']}")
+                    if len(config['pairs']) <= 7:
+                        print(f"    💱 {', '.join(config['pairs'])}")
+                    else:
+                        print(f"    💱 {', '.join(config['pairs'][:5])}...")
+                    print()
+                    counter += 1
+            
+                print(" 0. ⬅️ Zurück")
+            
+                list_choice = input(f"Wählen Sie eine Liste (0-{counter-1}): ").strip()
+            
+                if list_choice == "0":
+                    continue
+                elif list_choice in list_options:
+                    key, config = list_options[list_choice]
+                
+                    # Verfügbarkeits-Check
+                    available_pairs = config['pairs'].copy()
+                    unavailable_pairs = []
+                
+                    if self.mt5_connected:
+                        print(f"\n🔍 Prüfe Verfügbarkeit...")
+                        available_pairs = []
+                    
+                        for pair in config['pairs']:
+                            symbol_info = mt5.symbol_info(pair)
+                            if symbol_info and symbol_info.visible:
+                                available_pairs.append(pair)
+                            else:
+                                unavailable_pairs.append(pair)
+                    
+                        print(f"✅ Verfügbar: {len(available_pairs)}/{len(config['pairs'])}")
+                        if unavailable_pairs:
+                            print(f"❌ Nicht verfügbar: {', '.join(unavailable_pairs)}")
+                
+                    if available_pairs:
+                        print(f"\n📊 {config['name']}")
+                        print(f"💱 Verfügbare Paare: {', '.join(available_pairs)}")
+                    
+                        confirm = input("\nDiese Auswahl für Auto-Trading verwenden? (ja/nein): ").lower()
+                        if confirm == "ja":
+                            self.auto_trade_symbols = available_pairs
+                            print(f"✅ {len(available_pairs)} Paare für Auto-Trading aktiviert!")
+                        
+                            # Optional zu Favoriten hinzufügen
+                            save_fav = input("Auswahl zu Favoriten hinzufügen? (ja/nein): ").lower()
+                            if save_fav == "ja":
+                                for pair in available_pairs:
+                                    if pair not in favorites:
+                                        favorites.append(pair)
+                                print("✅ Zu Favoriten hinzugefügt")
+                    else:
+                        print("❌ Keine verfügbaren Paare in dieser Liste")
+                else:
+                    print("❌ Ungültige Auswahl")
+                
+            elif choice == "2":
+                # Manuelle Eingabe
+                print(f"\n✍️ MANUELLE EINGABE:")
+                print("─" * 25)
+                print("💡 Formate:")
+                print("   • Einzeln: EURUSD")
+                print("   • Mehrere: EURUSD,GBPUSD,USDJPY")
+                print("   • Mit Leerzeichen: EURUSD GBPUSD USDJPY")
+            
+                user_input = input("\n💱 Währungspaare eingeben: ").upper().strip()
+            
+                if user_input:
+                    # Parse Input
+                    if ',' in user_input:
+                        pairs = [p.strip() for p in user_input.split(',')]
+                    else:
+                        pairs = user_input.split()
+                
+                    # Validierung
+                    valid_pairs = []
+                    invalid_pairs = []
+                
+                    for pair in pairs:
+                        if pair:
+                            if self.mt5_connected:
+                                symbol_info = mt5.symbol_info(pair)
+                                if symbol_info and symbol_info.visible:
+                                    valid_pairs.append(pair)
+                                else:
+                                    invalid_pairs.append(pair)
+                            else:
+                                valid_pairs.append(pair)
+                
+                    print(f"\n📊 VALIDIERUNG:")
+                    if valid_pairs:
+                        print(f"✅ Gültig: {len(valid_pairs)} - {', '.join(valid_pairs)}")
+                    if invalid_pairs:
+                        print(f"❌ Ungültig: {len(invalid_pairs)} - {', '.join(invalid_pairs)}")
+                
+                    if valid_pairs:
+                        confirm = input(f"\n{len(valid_pairs)} gültige Paare verwenden? (ja/nein): ").lower()
+                        if confirm == "ja":
+                            self.auto_trade_symbols = valid_pairs
+                            print(f"✅ {len(valid_pairs)} Paare aktiviert!")
+                    else:
+                        print("❌ Keine gültigen Paare")
+                else:
+                    print("❌ Keine Eingabe")
+                
+            elif choice == "3":
+                # Favoriten verwalten
+                self.manage_favorite_pairs_simple()
+            
+            elif choice == "4":
+                # Verfügbare Paare anzeigen
+                self.show_available_pairs_simple()
+            
+            elif choice == "5":
+                # Verfügbarkeit prüfen
+                self.check_pair_availability_simple()
+            
+            elif choice == "6":
+                # Performance-Analyse
+                self.analyze_pair_performance_simple()
+            
+            elif choice == "7":
+                break
+            
+            else:
+                print("❌ Ungültige Auswahl")
+        
+            input("\nDrücken Sie Enter zum Fortfahren...")
+
+    def manage_favorite_pairs_simple(self):
+        """Vereinfachte Favoriten-Verwaltung"""
+    
+        favorites = self.custom_pairs["user_favorites"]["pairs"]
+    
+        while True:
+            print(f"\n💾 FAVORITEN VERWALTEN:")
+            print("─" * 25)
+        
+            if favorites:
+                print("📋 Aktuelle Favoriten:")
+                for i, pair in enumerate(favorites, 1):
+                    print(f"   {i}. {pair}")
+            else:
+                print("📋 Keine Favoriten gespeichert")
+        
+            print(f"\nOptionen:")
+            print("1. ➕ Favorit hinzufügen")
+            print("2. ➖ Favorit entfernen") 
+            print("3. 🔄 Favoriten für Auto-Trading verwenden")
+            print("4. 🗑️ Alle Favoriten löschen")
+            print("5. ⬅️ Zurück")
+        
+            choice = input("\nWählen (1-5): ").strip()
+        
+            if choice == "1":
+                new_pair = input("Währungspaar eingeben: ").upper().strip()
+                if new_pair and new_pair not in favorites:
+                    favorites.append(new_pair)
+                    print(f"✅ {new_pair} zu Favoriten hinzugefügt")
+                else:
+                    print("❌ Ungültiges Paar oder bereits vorhanden")
+        
+            elif choice == "2":
+                if favorites:
+                    try:
+                        index = int(input("Nummer zum Entfernen: ")) - 1
+                        if 0 <= index < len(favorites):
+                            removed = favorites.pop(index)
+                            print(f"✅ {removed} entfernt")
+                        else:
+                            print("❌ Ungültige Nummer")
+                    except ValueError:
+                        print("❌ Ungültige Eingabe")
+                else:
+                    print("❌ Keine Favoriten vorhanden")
+        
+            elif choice == "3":
+                if favorites:
+                    self.auto_trade_symbols = favorites.copy()
+                    print(f"✅ {len(favorites)} Favoriten für Auto-Trading aktiviert")
+                    return
+                else:
+                    print("❌ Keine Favoriten vorhanden")
+        
+            elif choice == "4":
+                if favorites:
+                    confirm = input("Alle Favoriten löschen? (ja/nein): ").lower()
+                    if confirm == "ja":
+                        favorites.clear()
+                        print("✅ Alle Favoriten gelöscht")
+                else:
+                    print("❌ Keine Favoriten vorhanden")
+        
+            elif choice == "5":
+                break
+
+    def show_available_pairs_simple(self):
+        """Vereinfachte Anzeige verfügbarer Paare"""
+    
+        if not self.mt5_connected:
+            print("❌ MT5 nicht verbunden - kann Verfügbarkeit nicht prüfen")
+            return
+    
+        print("\n📊 VERFÜGBARE WÄHRUNGSPAARE:")
+        print("─" * 35)
+    
+        try:
+            symbols = mt5.symbols_get()
+            if not symbols:
+                print("❌ Keine Symbole gefunden")
+                return
+        
+            # Nur Forex-Paare (6 Zeichen, nur Buchstaben)
+            forex_pairs = [s.name for s in symbols if s.visible and len(s.name) == 6 and s.name.isalpha()]
+        
+            if forex_pairs:
+                print(f"💱 Forex-Paare ({len(forex_pairs)}):")
+                # Zeige in 4er-Spalten
+                for i in range(0, len(forex_pairs), 4):
+                    row = forex_pairs[i:i+4]
+                    print("   " + "".join(f"{pair:<12}" for pair in row))
+        
+            print(f"\n📊 Gesamt verfügbare Forex-Paare: {len(forex_pairs)}")
+        
+        except Exception as e:
+            print(f"❌ Fehler: {e}")
+
+    def check_pair_availability_simple(self):
+        """Vereinfachte Verfügbarkeits-Prüfung"""
+    
+        pairs_input = input("\n💱 Paare prüfen (kommagetrennt): ").upper().strip()
+        if not pairs_input:
+            return
+    
+        pairs = [p.strip() for p in pairs_input.split(',')]
+    
+        print(f"\n🔍 VERFÜGBARKEITS-CHECK:")
+        print("─" * 30)
+    
+        for pair in pairs:
+            if self.mt5_connected:
+                symbol_info = mt5.symbol_info(pair)
+                if symbol_info and symbol_info.visible:
+                    tick = mt5.symbol_info_tick(pair)
+                    if tick:
+                        price = (tick.bid + tick.ask) / 2
+                        print(f"✅ {pair:<10} Preis: {price:.5f}")
+                    else:
+                        print(f"⚠️ {pair:<10} Symbol OK, keine Preise")
+                else:
+                    print(f"❌ {pair:<10} Nicht verfügbar")
+            else:
+                print(f"❓ {pair:<10} MT5 nicht verbunden")
+
+    def analyze_pair_performance_simple(self):
+        """Vereinfachte Performance-Analyse"""
+    
+        if not hasattr(self, 'auto_trade_symbols') or not self.auto_trade_symbols:
+            print("❌ Keine Auto-Trading Paare konfiguriert")
+            return
+    
+        print(f"\n📈 PERFORMANCE-ANALYSE:")
+        print("─" * 30)
+    
+        for symbol in self.auto_trade_symbols[:10]:
+            try:
+                if self.mt5_connected:
+                    tick = mt5.symbol_info_tick(symbol)
+                    if tick:
+                        # RSI berechnen
+                        rsi = self.calculate_rsi(symbol) if hasattr(self, 'calculate_rsi') else None
+                        rsi_status = "📈" if rsi and rsi < 30 else "📉" if rsi and rsi > 70 else "📊"
+                    
+                        # Spread als Volatilitäts-Indikator
+                        spread = tick.ask - tick.bid
+                        vol_status = "🔥" if spread > 0.0003 else "🟢" if spread < 0.0001 else "🟡"
+                    
+                        print(f"{rsi_status} {symbol:<10} RSI: {rsi or 'N/A':<5} | Vol: {vol_status}")
+                    else:
+                        print(f"❌ {symbol:<10} Keine Daten")
+                else:
+                    print(f"❓ {symbol:<10} MT5 nicht verbunden")
+            except Exception as e:
+                print(f"⚠️ {symbol:<10} Fehler")
+    
+        print("\n💡 Legende: 📈 Überverkauft | 📉 Überkauft | 📊 Neutral")
+        print("💡 Volatilität: 🔥 Hoch | 🟡 Normal | 🟢 Niedrig")
 
     def companion_menu(self):
         """Separates Trading Companion Menü"""
@@ -1339,6 +4205,187 @@ class MT5FinGPT:
                 print("Ungültige Auswahl")
         
             input("\nDrücken Sie Enter zum Fortfahren...")
+
+    def enhanced_enable_auto_trading(self):
+        """Erweiterte Auto-Trading Aktivierung mit verbesserter Benutzerführung"""
+    
+        if not self.trading_enabled:
+            print("❌ Erst Trading aktivieren!")
+            return False
+    
+        print("\n🤖 VOLLAUTOMATISCHES TRADING SETUP")
+        print("═" * 50)
+        print("⚠️ WARNUNG: Automatisches Trading ist hochriskant!")
+        print("💰 Nur mit Geld handeln, das Sie verlieren können!")
+    
+        # Sicherheitsabfragen
+        confirm1 = input("\nAuto-Trading aktivieren? (GEFÄHRLICH/nein): ")
+        if confirm1 != "GEFÄHRLICH":
+            return False
+    
+        confirm2 = input("Risiko verstanden? (ICH_VERSTEHE): ")
+        if confirm2 != "ICH_VERSTEHE":
+            return False
+    
+        # Währungspaar-Auswahl mit verbesserter UI
+        print(f"\n📋 WÄHRUNGSPAAR AUSWAHL")
+        print("─" * 30)
+        print("1. 🔥 Standard Majors (EURUSD, GBPUSD, USDJPY)")
+        print("2. 🌍 Erweiterte Majors (+ USDCHF, AUDUSD, USDCAD)")
+        print("3. 🌎 Alle verfügbaren Paare")
+        print("4. ✏️ Eigene Auswahl")
+        print("5. 📊 Aktuelle Paare beibehalten")
+    
+        choice = input("Wählen Sie (1-5): ").strip()
+    
+        if choice == "1":
+            self.auto_trade_symbols = ["EURUSD", "GBPUSD", "USDJPY"]
+        elif choice == "2":
+            self.auto_trade_symbols = ["EURUSD", "GBPUSD", "USDJPY", "USDCHF", "AUDUSD", "USDCAD"]
+        elif choice == "3":
+            # Alle verfügbaren Forex-Paare
+            all_symbols = ["EURUSD", "GBPUSD", "USDJPY", "USDCHF", "AUDUSD", "USDCAD", 
+                          "NZDUSD", "EURJPY", "GBPJPY", "AUDJPY", "EURGBP", "EURAUD"]
+        
+            # Prüfe welche verfügbar sind
+            available_symbols = []
+            print("📊 Prüfe verfügbare Symbole...")
+        
+            for symbol in all_symbols:
+                tick = mt5.symbol_info_tick(symbol)
+                if tick:
+                    available_symbols.append(symbol)
+                    print(f"✅ {symbol}")
+                else:
+                    print(f"❌ {symbol} (nicht verfügbar)")
+        
+            if available_symbols:
+                self.auto_trade_symbols = available_symbols
+                print(f"✅ {len(available_symbols)} Paare verfügbar")
+            else:
+                print("❌ Keine Paare verfügbar - verwende EURUSD")
+                self.auto_trade_symbols = ["EURUSD"]
+            
+        elif choice == "4":
+            symbols_input = input("Symbole eingeben (getrennt durch Komma): ").upper()
+            if symbols_input:
+                symbols = [s.strip() for s in symbols_input.split(',')]
+                # Validiere Symbole
+                valid_symbols = []
+                for symbol in symbols:
+                    tick = mt5.symbol_info_tick(symbol)
+                    if tick:
+                        valid_symbols.append(symbol)
+                        print(f"✅ {symbol}")
+                    else:
+                        print(f"❌ {symbol} (nicht verfügbar)")
+            
+                if valid_symbols:
+                    self.auto_trade_symbols = valid_symbols
+                else:
+                    print("❌ Keine gültigen Symbole - verwende EURUSD")
+                    self.auto_trade_symbols = ["EURUSD"]
+            else:
+                return False
+            
+        elif choice == "5":
+            if hasattr(self, 'auto_trade_symbols') and self.auto_trade_symbols:
+                print(f"📊 Aktuelle Paare: {', '.join(self.auto_trade_symbols)}")
+            else:
+                print("❌ Keine aktuellen Paare - verwende EURUSD")
+                self.auto_trade_symbols = ["EURUSD"]
+        else:
+            print("❌ Ungültige Auswahl")
+            return False
+    
+        # Intervall-Einstellung
+        print(f"\n⏱️ TRADING INTERVALL")
+        print("─" * 25)
+        print(f"Aktuell: {self.analysis_interval}s")
+        print("💡 Empfohlene Intervalle:")
+        print("   • 60-120s:  🔥 Aggressiv (mehr Trades)")
+        print("   • 180-300s: 📊 Normal (ausgewogen)")
+        print("   • 300-600s: 🛡️ Konservativ (weniger Trades)")
+    
+        new_interval = input(f"Neues Intervall in Sekunden (Enter für {self.analysis_interval}): ")
+        if new_interval:
+            try:
+                interval_value = int(new_interval)
+                if 30 <= interval_value <= 3600:  # 30s bis 1h
+                    self.analysis_interval = interval_value
+                    print(f"✅ Intervall auf {self.analysis_interval}s gesetzt")
+                else:
+                    print("⚠️ Intervall außerhalb des empfohlenen Bereichs (30-3600s)")
+                    self.analysis_interval = max(30, min(3600, interval_value))
+                    print(f"✅ Angepasst auf {self.analysis_interval}s")
+            except ValueError:
+                print("❌ Ungültiges Intervall - verwende aktuelles")
+    
+        # Risk Management Check
+        print(f"\n🛡️ RISK MANAGEMENT STATUS")
+        print("─" * 30)
+    
+        if hasattr(self, 'risk_manager') and self.risk_manager:
+            try:
+                summary = self.risk_manager.get_risk_summary()
+                print("✅ Risk Management aktiv")
+                print(f"💰 Aktueller Tages P&L: {summary.get('daily_pnl', 0):.2f}€")
+                print(f"📊 Max Verlust heute: {self.risk_manager.max_daily_loss:.2f}€")
+                print(f"🎯 Verbleibende Trades: {self.risk_manager.max_trades_per_day - summary.get('trades_today', 0)}")
+                print(f"💼 Offene Positionen: {summary.get('open_positions', 0)}/{self.risk_manager.max_total_positions}")
+            
+                # Warnung bei kritischen Werten
+                if summary.get('daily_pnl', 0) <= self.risk_manager.max_daily_loss * 0.8:
+                    print("🔴 WARNUNG: Verlustlimit fast erreicht!")
+            
+            except Exception as e:
+                print(f"⚠️ Risk Manager Status-Fehler: {e}")
+        else:
+            print("❌ Risk Management nicht verfügbar")
+            print("⚠️ Trading ohne Schutz - SEHR RISKANT!")
+        
+            no_risk_confirm = input("Trotzdem fortfahren? (OHNE_SCHUTZ): ")
+            if no_risk_confirm != "OHNE_SCHUTZ":
+                return False
+    
+        # Multi-Timeframe Status
+        print(f"\n📈 ANALYSE-FILTER STATUS")
+        print("─" * 25)
+        print(f"📊 RSI Filter: ✅ (Periode: {self.rsi_period})")
+        print(f"📈 MACD Filter: ✅ ({self.macd_fast_period}/{self.macd_slow_period}/{self.macd_signal_period})")
+        print(f"🎯 S/R Filter: ✅ (Lookback: {self.sr_lookback_period})")
+    
+        if self.mtf_enabled:
+            tf_name = self.timeframe_names.get(self.trend_timeframe, "H1")
+            print(f"⏰ Trend Filter: ✅ ({tf_name} Timeframe)")
+        else:
+            print(f"⏰ Trend Filter: ❌ (deaktiviert)")
+    
+        # Final Setup
+        self.auto_trading = True
+    
+        print(f"\n🚀 AUTO-TRADING BEREIT!")
+        print("═" * 35)
+        print(f"📊 Anzahl Paare: {len(self.auto_trade_symbols)}")
+        print(f"💱 Symbole: {', '.join(self.auto_trade_symbols[:5])}")
+        if len(self.auto_trade_symbols) > 5:
+            print(f"         ... und {len(self.auto_trade_symbols) - 5} weitere")
+        print(f"⏱️ Analyse-Intervall: {self.analysis_interval}s")
+        print(f"🛡️ Risk Management: {'✅' if hasattr(self, 'risk_manager') and self.risk_manager else '❌'}")
+        print(f"📈 Filter aktiv: RSI + MACD + S/R{' + Trend' if self.mtf_enabled else ''}")
+        print("═" * 35)
+    
+        # Letzte Bestätigung
+        final_confirm = input("\n🎯 Auto-Trading jetzt starten? (START/abbrechen): ")
+        if final_confirm == "START":
+            self.log("INFO", f"Auto-Trading aktiviert mit {len(self.auto_trade_symbols)} Paaren", "TRADE")
+            print(f"\n🚀 STARTE AUTO-TRADING...")
+            print("⏸️ Stopp mit Ctrl+C")
+            return True
+        else:
+            self.auto_trading = False
+            print("❌ Auto-Trading abgebrochen")
+            return False
 
     def macd_settings_menu(self):
         """MACD Einstellungen Menü"""
@@ -2754,41 +5801,69 @@ Antworte auf Deutsch und konkret."""
             return None
     
     def auto_trade_cycle(self, symbol):
-        """Verbesserte auto_trade_cycle mit Risk Checks"""
+        """Verbesserte auto_trade_cycle mit korrigierter Variable-Reihenfolge"""
         try:
-            # Basis Risk Check vor Analyse
+            # 1. ERST SYMBOL UND TICK INFO HOLEN - VOR ALLEN ANDEREN CHECKS!
+            symbol_info = mt5.symbol_info(symbol)
+            if not symbol_info:
+                print(f"{symbol}: Keine Marktdaten verfügbar")
+                return False
+            
+            tick = mt5.symbol_info_tick(symbol)
+            if not tick:
+                print(f"{symbol}: Keine Tick-Daten verfügbar")
+                return False
+
+            # 2. JETZT ERST BASIS RISK CHECK
             can_trade, reason = self.risk_manager.can_open_position(symbol, "BUY", self.default_lot_size)
             if not can_trade:
                 self.log("INFO", f"{symbol}: {reason}", "RISK")
                 return False
-        
-            # Multi-Timeframe Trend-Filter
+    
+            # 3. MULTI-TIMEFRAME TREND-FILTER
             if self.mtf_enabled and self.require_trend_confirmation:
                 trend_data = self.get_higher_timeframe_trend(symbol)
                 if not trend_data:
                     print(f"{symbol}: Trend-Analyse fehlgeschlagen")
                     return False
-            
+        
                 trend_direction = trend_data['direction']
                 trend_strength = trend_data['strength']
-            
+        
                 # Trend-Filter anwenden
                 if trend_direction == "NEUTRAL" or trend_strength < self.trend_strength_threshold:
                     print(f"{symbol}: Kein klarer Trend ({trend_direction}, Stärke: {trend_strength:.5f})")
                     return False
-        
+    
+            # 4. LIVE-DATEN UND KI-ANALYSE
             live_data = self.get_mt5_live_data(symbol)
+            if "Fehler" in live_data or "nicht" in live_data:
+                print(f"{symbol}: Fehler beim Laden der Marktdaten")
+                return False
+            
             # RSI, MACD und S/R in Prompt erwähnen
-            prompt = f"Analysiere {symbol} für Trading-Entscheidung. Berücksichtige besonders den RSI-Wert, MACD-Signale (Kreuzungen, Histogram, Nulllinie), ob das Symbol überkauft oder überverkauft ist, und die wichtigen Support/Resistance Levels. Achte auf Breakouts, Bounces an S/R Levels, RSI-Divergenzen und MACD-Momentum. Erkläre deine Begründung mit technischen Indikatoren, RSI-Signalen, MACD-Analyse, S/R-Levels, Trends oder Chartmustern. Gib klare BUY/SELL/WARTEN Empfehlung mit Begründung."
+            prompt = f"""Analysiere {symbol} für Trading-Entscheidung. 
+
+    Berücksichtige besonders:
+    - RSI-Wert und ob überkauft/überverkauft
+    - MACD-Signale (Kreuzungen, Histogram, Nulllinie) 
+    - Support/Resistance Levels und deren Stärke
+    - Breakouts oder Bounces an S/R Levels
+    - Trend-Richtung und Momentum
+
+    Gib eine klare BUY/SELL/WARTEN Empfehlung mit kurzer technischer Begründung."""
+
             ai_response = self.chat_with_model(prompt, live_data)
             recommendation = self.parse_ai_recommendation(ai_response)
+        
             if not recommendation:
                 print(f"{symbol}: WARTEN")
                 return False
+            
             action = recommendation["action"]
             reasoning = recommendation.get("reasoning", "KI-Analyse")
-        
-            # Multi-Timeframe Bestätigung
+    
+            # 5. MULTI-TIMEFRAME BESTÄTIGUNG
             if self.mtf_enabled and self.require_trend_confirmation:
                 if action == "BUY" and trend_direction == "BEARISH":
                     print(f"{symbol}: H1-Trend bearish - BUY abgelehnt")
@@ -2796,116 +5871,113 @@ Antworte auf Deutsch und konkret."""
                 elif action == "SELL" and trend_direction == "BULLISH":
                     print(f"{symbol}: H1-Trend bullish - SELL abgelehnt")
                     return False
-        
+    
+            # 6. PRÜFE OB BEREITS POSITION OFFEN
             positions = mt5.positions_get(symbol=symbol)
             if positions:
                 print(f"{symbol}: Position bereits offen")
                 return False
-            # RSI-Filter für Auto-Trading
+            
+            # 7. RSI-FILTER
             rsi_value = self.calculate_rsi(symbol)
-            sr_data = self.calculate_support_resistance(symbol)
             if rsi_value:
-                rsi_signal, _ = self.get_rsi_signal(rsi_value)
-                # Prüfe RSI-Bestätigung
                 if action == "BUY" and rsi_value > self.rsi_overbought:
                     print(f"{symbol}: RSI überkauft ({rsi_value}) - BUY abgelehnt")
                     return False
                 elif action == "SELL" and rsi_value < self.rsi_oversold:
                     print(f"{symbol}: RSI überverkauft ({rsi_value}) - SELL abgelehnt")
                     return False
-    
-            # MACD-Filter für Auto-Trading
+
+            # 8. MACD-FILTER
             macd_data = self.calculate_macd(symbol)
             if macd_data:
                 macd_signal, _ = self.get_macd_signal(macd_data)
-                # Prüfe MACD-Bestätigung
                 if action == "BUY" and macd_signal == "SELL":
-                    print(f"{symbol}: MACD bearisch ({macd_data['macd']:.6f}) - BUY abgelehnt")
+                    print(f"{symbol}: MACD bearisch - BUY abgelehnt")
                     return False
                 elif action == "SELL" and macd_signal == "BUY":
-                    print(f"{symbol}: MACD bullisch ({macd_data['macd']:.6f}) - SELL abgelehnt")
+                    print(f"{symbol}: MACD bullisch - SELL abgelehnt")
                     return False
         
-                # Zusätzliche MACD-Validierung: Histogram-Richtung
+                # MACD Histogram-Validierung
                 if action == "BUY" and macd_data['histogram'] < 0 and macd_data['histogram_trend'] == "FALLEND":
                     print(f"{symbol}: MACD Histogram fallend - BUY abgelehnt")
                     return False
                 elif action == "SELL" and macd_data['histogram'] > 0 and macd_data['histogram_trend'] == "STEIGEND":
                     print(f"{symbol}: MACD Histogram steigend - SELL abgelehnt")
                     return False
-    
-            # Support/Resistance Filter
+
+            # 9. SUPPORT/RESISTANCE FILTER
+            sr_data = self.calculate_support_resistance(symbol)
             if sr_data:
-                sr_signal, sr_desc = self.get_sr_signal(sr_data, tick.ask if action == "BUY" else tick.bid)
-                # Zusätzliche S/R Validierung
+                current_price = tick.ask if action == "BUY" else tick.bid
+            
                 if action == "BUY" and sr_data['nearest_resistance']:
                     res_level, _ = sr_data['nearest_resistance']
-                    distance_to_res = abs(tick.ask - res_level) / tick.ask * 10000  # in Pips
-                    if distance_to_res < 5:  # Zu nah an Resistance
+                    distance_to_res = abs(current_price - res_level) / current_price * 10000
+                    if distance_to_res < 5:
                         print(f"{symbol}: Zu nah an Resistance ({distance_to_res:.1f} Pips) - BUY abgelehnt")
                         return False
+                    
                 elif action == "SELL" and sr_data['nearest_support']:
                     sup_level, _ = sr_data['nearest_support']
-                    distance_to_sup = abs(tick.bid - sup_level) / tick.bid * 10000  # in Pips
-                    if distance_to_sup < 5:  # Zu nah an Support
+                    distance_to_sup = abs(current_price - sup_level) / current_price * 10000
+                    if distance_to_sup < 5:
                         print(f"{symbol}: Zu nah an Support ({distance_to_sup:.1f} Pips) - SELL abgelehnt")
                         return False
-            symbol_info = mt5.symbol_info(symbol)
-            if not symbol_info:
-                print(f"{symbol}: Keine Marktdaten")
-                return False
-            current = tick.ask if action == "BUY" else tick.bid
+
+            # 10. STOP-LOSS UND TAKE-PROFIT BERECHNUNG
+            current_price = tick.ask if action == "BUY" else tick.bid
             min_distance = symbol_info.trade_stops_level * symbol_info.point * 2
 
-            # Smarte Stop-Loss und Take-Profit basierend auf S/R
+            # Smarte SL/TP basierend auf S/R
             if sr_data and action == "BUY":
                 # Stop-Loss unter nächstem Support
                 if sr_data['nearest_support']:
                     sup_level, _ = sr_data['nearest_support']
-                    suggested_sl = sup_level - (symbol_info.point * 10)  # 10 Pips Puffer
-                    stop_loss = max(suggested_sl, current - max(min_distance, current * 0.01))
+                    suggested_sl = sup_level - (symbol_info.point * 10)
+                    stop_loss = max(suggested_sl, current_price - max(min_distance, current_price * 0.01))
                 else:
-                    stop_loss = current - max(min_distance, current * 0.01)
+                    stop_loss = current_price - max(min_distance, current_price * 0.01)
+                
                 # Take-Profit an nächster Resistance
                 if sr_data['nearest_resistance']:
                     res_level, _ = sr_data['nearest_resistance']
-                    suggested_tp = res_level - (symbol_info.point * 10)  # 10 Pips vor Resistance
-                    take_profit = min(suggested_tp, current + max(min_distance, current * 0.02))
+                    suggested_tp = res_level - (symbol_info.point * 10)
+                    take_profit = min(suggested_tp, current_price + max(min_distance, current_price * 0.02))
                 else:
-                    take_profit = current + max(min_distance, current * 0.02)
+                    take_profit = current_price + max(min_distance, current_price * 0.02)
+                
             elif sr_data and action == "SELL":
                 # Stop-Loss über nächster Resistance
                 if sr_data['nearest_resistance']:
                     res_level, _ = sr_data['nearest_resistance']
-                    suggested_sl = res_level + (symbol_info.point * 10)  # 10 Pips Puffer
-                    stop_loss = min(suggested_sl, current + max(min_distance, current * 0.01))
+                    suggested_sl = res_level + (symbol_info.point * 10)
+                    stop_loss = min(suggested_sl, current_price + max(min_distance, current_price * 0.01))
                 else:
-                    stop_loss = current + max(min_distance, current * 0.01)
+                    stop_loss = current_price + max(min_distance, current_price * 0.01)
+                
                 # Take-Profit an nächstem Support
                 if sr_data['nearest_support']:
                     sup_level, _ = sr_data['nearest_support']
-                    suggested_tp = sup_level + (symbol_info.point * 10)  # 10 Pips vor Support
-                    take_profit = max(suggested_tp, current - max(min_distance, current * 0.02))
+                    suggested_tp = sup_level + (symbol_info.point * 10)
+                    take_profit = max(suggested_tp, current_price - max(min_distance, current_price * 0.02))
                 else:
-                    take_profit = current - max(min_distance, current * 0.02)
+                    take_profit = current_price - max(min_distance, current_price * 0.02)
             else:
                 # Fallback zu Standard-Levels
                 if action == "BUY":
-                    stop_loss = current - max(min_distance, current * 0.01)
-                    take_profit = current + max(min_distance, current * 0.02)
+                    stop_loss = current_price - max(min_distance, current_price * 0.01)
+                    take_profit = current_price + max(min_distance, current_price * 0.02)
                 else:
-                    stop_loss = current + max(min_distance, current * 0.01)
-                    take_profit = current - max(min_distance, current * 0.02)
-    
-            print(f"Analysiere {symbol}...")
-            tick = mt5.symbol_info_tick(symbol)
-            if not tick:
-                print(f"{symbol}: Keine Marktdaten verfügbar")
-                return False
-    
+                    stop_loss = current_price + max(min_distance, current_price * 0.01)
+                    take_profit = current_price - max(min_distance, current_price * 0.02)
+
+            # 11. TRADE AUSFÜHREN
+            print(f"🔄 Analysiere {symbol}...")
             result = self.execute_trade(symbol, action, self.default_lot_size, stop_loss, take_profit)
-    
-            # Zeige Begründung nach erfolgreichem Trade
+
+            # 12. ERGEBNIS UND BEGRÜNDUNG ANZEIGEN
             if "✅" in result:
                 print(f"📊 Begründung: {reasoning}")
                 if self.mtf_enabled and 'trend_data' in locals():
@@ -2921,45 +5993,215 @@ Antworte auf Deutsch und konkret."""
                 if sr_data and sr_data['nearest_resistance']:
                     res_level, res_strength = sr_data['nearest_resistance']
                     print(f"🔴 Resistance: {res_level:.5f} (Stärke: {res_strength})")
-    
+
             print(result)
-    
             return "✅" in result
-    
+
         except Exception as e:
-            print(f"{symbol}: {e}")
+            print(f"{symbol}: Unerwarteter Fehler - {e}")
+            self.log_error("auto_trade_cycle", e, f"Symbol: {symbol}")
             return False
     
     def run_auto_trading(self):
-        print("\nSTARTE AUTO-TRADING")
+        """Verbessertes Auto-Trading mit erweiterte Fehlerbehandlung"""
+        print("\n🚀 STARTE AUTO-TRADING")
         print("STOPP: Ctrl+C")
         print(f"Symbole: {self.auto_trade_symbols}")
         print(f"Intervall: {self.analysis_interval}s")
-        
+    
         cycle = 0
+        consecutive_errors = 0
+        max_consecutive_errors = 5
+    
         try:
             while self.auto_trading:
                 cycle += 1
-                print(f"\nZYKLUS #{cycle} - {datetime.now().strftime('%H:%M:%S')}")
-                
+                print(f"\n📊 ZYKLUS #{cycle} - {datetime.now().strftime('%H:%M:%S')}")
+            
+                # System Health Check alle 10 Zyklen
+                if cycle % 10 == 0:
+                    if not self.system_health_check():
+                        print("⚠️ System Health Check fehlgeschlagen - Auto-Trading pausiert")
+                        time.sleep(60)  # 1 Minute warten
+                        continue
+            
+                # Position Management alle 2 Zyklen
                 if cycle % 2 == 0:
-                    print("Position Management Check...")
-                    self.manage_open_positions()
-                
-                for symbol in self.auto_trade_symbols:
-                    self.auto_trade_cycle(symbol)
-                    time.sleep(5)
-                
-                print(f"Warte {self.analysis_interval}s...")
+                    try:
+                        print("🔧 Position Management Check...")
+                        self.manage_open_positions()
+                    except Exception as e:
+                        print(f"⚠️ Position Management Fehler: {e}")
+                        self.log_error("position_management", e)
+            
+                cycle_success = False
+            
+                # Durch alle Symbole iterieren
+                for i, symbol in enumerate(self.auto_trade_symbols):
+                    try:
+                        print(f"\n[{i+1}/{len(self.auto_trade_symbols)}] 🔍 {symbol}")
+                    
+                        # Auto-Trade Cycle mit Timeout
+                        success = self.auto_trade_cycle_with_timeout(symbol, timeout=30)
+                    
+                        if success:
+                            cycle_success = True
+                            consecutive_errors = 0  # Reset error counter bei Erfolg
+                    
+                        # Kurze Pause zwischen Symbolen
+                        time.sleep(2)
+                    
+                    except Exception as e:
+                        consecutive_errors += 1
+                        print(f"❌ {symbol}: Fehler - {e}")
+                        self.log_error("auto_trade_symbol", e, f"Symbol: {symbol}, Zyklus: {cycle}")
+                    
+                        # Bei zu vielen Fehlern in Folge Auto-Trading pausieren
+                        if consecutive_errors >= max_consecutive_errors:
+                            print(f"🛑 Zu viele Fehler in Folge ({consecutive_errors}) - Auto-Trading pausiert für 5 Minuten")
+                            time.sleep(300)  # 5 Minuten Pause
+                            consecutive_errors = 0
+            
+                # Zyklus-Zusammenfassung
+                status_icon = "✅" if cycle_success else "❌"
+                print(f"\n{status_icon} Zyklus #{cycle} abgeschlossen")
+            
+                # Risk Management Status anzeigen
+                if hasattr(self, 'risk_manager') and self.risk_manager and cycle % 5 == 0:
+                    try:
+                        summary = self.risk_manager.get_risk_summary()
+                        print(f"💰 Tages P&L: {summary.get('daily_pnl', 0):.2f}€ | Trades: {summary.get('trades_today', 0)}")
+                    except Exception as e:
+                        print(f"⚠️ Risk Summary Fehler: {e}")
+            
+                print(f"⏱️ Warte {self.analysis_interval}s bis zum nächsten Zyklus...")
                 time.sleep(self.analysis_interval)
-                
+            
         except KeyboardInterrupt:
-            print("\nAuto-Trading gestoppt!")
+            print("\n🛑 Auto-Trading durch Benutzer gestoppt!")
             self.auto_trading = False
         except Exception as e:
-            print(f"\nAuto-Trading Fehler: {e}")
+            print(f"\n💥 Kritischer Auto-Trading Fehler: {e}")
+            self.log_error("run_auto_trading", e)
             self.auto_trading = False
+        finally:
+            print("🔄 Auto-Trading beendet")
     
+    def system_health_check(self):
+        """System Health Check für Auto-Trading"""
+        try:
+            checks = {
+                'mt5_connection': False,
+                'ollama_connection': False,
+                'risk_manager': False,
+                'memory_usage': False
+            }
+        
+            # 1. MT5 Verbindung prüfen
+            if self.mt5_connected:
+                test_tick = mt5.symbol_info_tick("EURUSD")
+                checks['mt5_connection'] = test_tick is not None
+        
+            # 2. Ollama Verbindung prüfen
+            checks['ollama_connection'] = self.check_ollama_status()
+        
+            # 3. Risk Manager Status prüfen
+            if hasattr(self, 'risk_manager') and self.risk_manager:
+                try:
+                    summary = self.risk_manager.get_risk_summary()
+                    checks['risk_manager'] = summary is not None
+                except:
+                    checks['risk_manager'] = False
+        
+            # 4. Memory Usage prüfen (vereinfacht)
+            import psutil
+            memory_percent = psutil.virtual_memory().percent
+            checks['memory_usage'] = memory_percent < 90
+        
+            # Ergebnis bewerten
+            health_score = sum(checks.values()) / len(checks)
+        
+            if health_score < 0.75:  # Weniger als 75% der Checks bestanden
+                print(f"⚠️ System Health: {health_score:.0%}")
+                for check, status in checks.items():
+                    icon = "✅" if status else "❌"
+                    print(f"   {icon} {check}")
+                return False
+        
+            return True
+        
+        except Exception as e:
+            print(f"❌ Health Check Fehler: {e}")
+            return False
+
+    def auto_trade_cycle_with_timeout(self, symbol, timeout=30):
+        """Auto-Trade Cycle mit Timeout-Schutz"""
+        import threading
+        import time
+    
+        result = [False]  # Liste für Referenz-Sharing zwischen Threads
+        exception = [None]
+    
+        def target():
+            try:
+                result[0] = self.auto_trade_cycle(symbol)
+            except Exception as e:
+                exception[0] = e
+    
+        thread = threading.Thread(target=target)
+        thread.daemon = True
+        thread.start()
+        thread.join(timeout)
+    
+        if thread.is_alive():
+            print(f"⏰ {symbol}: Timeout nach {timeout}s - wird übersprungen")
+            return False
+    
+        if exception[0]:
+            raise exception[0]
+    
+        return result[0]
+
+    def enhanced_logging_for_auto_trading(self):
+        """Erweiterte Logging-Funktionen für Auto-Trading"""
+    
+        def log_auto_trade_stats(self, cycle, symbol, action, result):
+            """Detailliertes Logging für Auto-Trading Statistiken"""
+            timestamp = datetime.now().strftime('%H:%M:%S')
+        
+            # Erstelle strukturierte Log-Nachricht
+            log_data = {
+                'timestamp': timestamp,
+                'cycle': cycle,
+                'symbol': symbol,
+                'action': action,
+                'result': result,
+                'daily_trades': getattr(self, 'daily_trade_count', 0),
+                'success_rate': self.calculate_success_rate()
+            }
+        
+            # Log in Datei schreiben
+            if self.logger:
+                self.logger.info(f"AUTO_TRADE: {json.dumps(log_data)}")
+        
+            # Konsolen-Output
+            result_icon = "✅" if "SUCCESS" in result else "❌"
+            print(f"{timestamp} {result_icon} #{cycle} {symbol} {action} - {result}")
+    
+        def calculate_success_rate(self):
+            """Berechnet aktuelle Erfolgsrate"""
+            try:
+                if not hasattr(self, 'trade_history'):
+                    self.trade_history = []
+            
+                if len(self.trade_history) == 0:
+                    return 0.0
+            
+                successful_trades = sum(1 for trade in self.trade_history[-20:] if trade.get('success', False))
+                return (successful_trades / min(20, len(self.trade_history))) * 100
+            except:
+                return 0.0
+
     def print_callable_methods(self):
         """Druckt alle aufrufbaren Methoden der Klasse (für Debugging)"""
         methods = [method for method in dir(self) if callable(getattr(self, method)) and not method.startswith("__")]
@@ -3017,6 +6259,72 @@ Antworte auf Deutsch und konkret."""
         except Exception as e:
             print(f"Dependency-Check Fehler: {e}")
             return False
+
+    def shutdown_system(self):
+        """Erweiterte System-Shutdown Prozedur"""
+        self.log("INFO", "System-Shutdown eingeleitet", "SYSTEM")
+        self.print_header("SYSTEM BEENDEN")
+        print("Stoppe alle Prozesse...")
+
+        # Companion stoppen
+        if self.companion_enabled:
+            self.log("INFO", "Trading Companion wird gestoppt", "COMPANION")
+            print("Stoppe Trading Companion...")
+            self.stop_trading_companion()
+
+        # Auto-Trading stoppen
+        if self.auto_trading:
+            self.log("INFO", "Auto-Trading wird gestoppt", "TRADE")
+            print("Stoppe Auto-Trading...")
+            self.auto_trading = False
+
+        # RL System stoppen (falls vorhanden)
+        if getattr(self, 'rl_enabled', False) and hasattr(self, 'rl_manager'):
+            try:
+                print("Speichere RL-Modell...")
+                # Hier könnte RL-spezifische Cleanup-Logik stehen
+                self.log("INFO", "RL System gestoppt", "RL")
+            except Exception as e:
+                print(f"⚠️ RL Shutdown Fehler: {e}")
+
+        # Risk Manager Abschlussbericht
+        if hasattr(self, 'risk_manager') and self.risk_manager:
+            try:
+                print("\n🛡️ Session Abschlussbericht:")
+                summary = self.risk_manager.get_risk_summary()
+                if summary:
+                    print(f"📊 Tages P&L: {summary.get('daily_pnl', 0):.2f}€")
+                    print(f"💼 Trades heute: {summary.get('trades_today', 0)}")
+                    print(f"📈 Offene Positionen: {summary.get('open_positions', 0)}")
+                
+                    # Erweiterte Statistiken
+                    if getattr(self, 'has_extended_indicators', False):
+                        print(f"📊 Analysierte Symbole: {getattr(self, 'analyzed_symbols_count', 0)}")
+                        print(f"🎯 Generierte Signale: {getattr(self, 'generated_signals_count', 0)}")
+            except Exception as e:
+                print(f"⚠️ Risk Manager Abschlussbericht Fehler: {e}")
+
+        # MT5 trennen
+        if self.mt5_connected:
+            self.log("INFO", "MT5 Verbindung wird getrennt", "MT5")
+            print("Trenne MT5...")
+            self.disconnect_mt5()
+
+        # Final Log
+        features_used = []
+        if getattr(self, 'has_extended_indicators', False):
+            features_used.append("Erweiterte Indikatoren")
+        if getattr(self, 'rl_enabled', False):
+            features_used.append("RL Trading")
+        if hasattr(self, 'risk_manager') and self.risk_manager:
+            features_used.append("Risk Management")
+    
+        if features_used:
+            print(f"\n✅ Genutzte erweiterte Features: {', '.join(features_used)}")
+    
+        self.log("INFO", "System erfolgreich heruntergefahren", "SYSTEM")
+        print("Alle Prozesse beendet. Auf Wiedersehen!")
+        return False
 
 def signal_handler(sig, frame):
         """Signal Handler für sauberes Beenden"""
