@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 RiskManager Klasse für FinGPT Trading System
 Erweiterte Risk Management Funktionen
