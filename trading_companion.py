@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 Trading Companion - Erweiterte Analyse-Tools 
 Ergänzung zum FinGPT MT5 System
