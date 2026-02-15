@@ -105,9 +105,11 @@ Im interaktiven Menü kannst du Daten laden, KI‑Analysen starten, Auto‑Tradi
 
 *Bitte keine automatischen Pfad‑Ersetzungen im Code einbringen – verwende stattdessen Konfigurations‑Variablen.*
 
+## ⚠️ Disclaimer
+*FinGPT ist ein rein experimentelles, privates Projekt. Das System nutzt automatisierte Handelsentscheidungen und kann zu finanziellen Verlusten führen. Der Autor übernimmt keinerlei Haftung für Verluste, Schäden oder rechtliche Konsequenzen, die aus der Nutzung dieses Codes entstehen. Nutzer sind verpflichtet, das System zunächst in einer sicheren Umgebung (z. B. Demo‑Konto) zu testen und sämtliche regulatorischen Vorgaben sowie Risikomanagement‑Prinzipien eigenständig zu berücksichtigen.*
+
 ## 📜 Lizenz
 MIT – du darfst das Projekt frei nutzen, modifizieren und kommerziell einsetzen, solange der Lizenz‑Hinweis erhalten bleibt.
 
 ---
 > **Tipp für nächtliche Arbeit:** Starte das Skript in einer `tmux`‑Session, damit du bei Verbindungsabbrüchen das Log weiter verfolgen kannst.
-```
