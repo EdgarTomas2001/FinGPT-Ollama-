@@ -1,0 +1,186 @@
+2026-02-15 11:38:28,161 | INFO | [SYSTEM] FinGPT System wird initialisiert...
+2026-02-15 11:38:28,161 | INFO | [RISK] Risk Manager erfolgreich initialisiert
+2026-02-15 11:38:28,161 | INFO | [INDICATORS] ✅ Erweiterte Indikatoren erfolgreich initialisiert
+2026-02-15 11:38:28,165 | INFO | [RL] ✅ RL Manager erfolgreich initialisiert
+2026-02-15 11:38:28,166 | INFO | [SYSTEM] FinGPT System mit Multi-Timeframe initialisiert
+2026-02-15 11:38:28,166 | INFO | [STATUS] ✅ Risk Manager ist verfügbar
+2026-02-15 11:38:28,166 | INFO | [STATUS] ✅ Erweiterte Indikatoren verfügbar
+2026-02-15 11:38:28,166 | INFO | [STATUS] ✅ RL Trading Agent verfügbar
+2026-02-15 11:38:53,578 | INFO | [USER] KI-Analyse gestartet
+2026-02-15 11:39:06,080 | INFO | [AI] AI-Analyse EURUSD: **SELL** (Kurz‑ bis mittelfristig)
+2026-02-15 11:39:17,044 | INFO | [USER] Auto-Trading Menü aufgerufen
+2026-02-15 11:39:17,044 | WARNING | [TRADE] Auto-Trading abgelehnt - Trading nicht aktiviert
+2026-02-15 11:39:20,671 | INFO | [USER] Trading-Status wird geändert
+2026-02-15 11:39:20,672 | INFO | [TRADE] Trading-Aktivierung angefordert
+2026-02-15 11:39:22,122 | INFO | [TRADE] Trading erfolgreich aktiviert
+2026-02-15 11:39:24,206 | INFO | [USER] Auto-Trading Menü aufgerufen
+2026-02-15 11:39:24,206 | INFO | [TRADE] Auto-Trading Setup gestartet
+2026-02-15 11:39:36,374 | INFO | [TRADE] Auto-Trading aktiviert mit 1 Paaren
+2026-02-15 11:45:47,446 | INFO | [SYSTEM] FinGPT System wird initialisiert...
+2026-02-15 11:45:47,446 | INFO | [RISK] Risk Manager erfolgreich initialisiert
+2026-02-15 11:45:47,446 | INFO | [INDICATORS] ✅ Erweiterte Indikatoren erfolgreich initialisiert
+2026-02-15 11:45:47,447 | INFO | [RL] ✅ RL Manager erfolgreich initialisiert
+2026-02-15 11:45:47,447 | INFO | [SYSTEM] FinGPT System mit Multi-Timeframe initialisiert
+2026-02-15 11:45:47,447 | INFO | [STATUS] ✅ Risk Manager ist verfügbar
+2026-02-15 11:45:47,447 | INFO | [STATUS] ✅ Erweiterte Indikatoren verfügbar
+2026-02-15 11:45:47,447 | INFO | [STATUS] ✅ RL Trading Agent verfügbar
+2026-02-15 11:46:31,785 | INFO | [USER] Live-Daten Abfrage gestartet
+2026-02-15 11:46:34,383 | INFO | [MT5] Marktdaten abgerufen für BTCUSD
+2026-02-15 11:46:39,104 | INFO | [USER] KI-Analyse gestartet
+2026-02-15 11:46:50,221 | INFO | [AI] AI-Analyse BTCUSD: **WARTEN** – kein eindeutiges BUY‑ oder SELL‑Signal. Der Markt befindet sich in einer kurzen Konsoli
+2026-02-15 11:47:05,307 | INFO | [USER] Trading Companion Menü aufgerufen
+2026-02-15 11:47:08,105 | INFO | [COMPANION] Trading Companion Menü beendet
+2026-02-15 11:58:31,013 | INFO | [SYSTEM] FinGPT System wird initialisiert...
+2026-02-15 11:58:31,013 | INFO | [RISK] Risk Manager erfolgreich initialisiert
+2026-02-15 11:58:31,013 | INFO | [INDICATORS] ✅ Erweiterte Indikatoren erfolgreich initialisiert
+2026-02-15 11:58:31,014 | INFO | [RL] ✅ RL Manager erfolgreich initialisiert
+2026-02-15 11:58:31,014 | INFO | [SYSTEM] FinGPT System mit Multi-Timeframe initialisiert
+2026-02-15 11:58:31,014 | INFO | [STATUS] ✅ Risk Manager ist verfügbar
+2026-02-15 11:58:31,015 | INFO | [STATUS] ✅ Erweiterte Indikatoren verfügbar
+2026-02-15 11:58:31,015 | INFO | [STATUS] ✅ RL Trading Agent verfügbar
+2026-02-15 12:28:34,694 | INFO | [USER] Live-Daten Abfrage gestartet
+2026-02-15 12:28:42,092 | INFO | [MT5] Marktdaten abgerufen für EURUSD
+2026-02-15 12:28:53,268 | INFO | [USER] KI-Analyse gestartet
+2026-02-15 12:29:03,314 | INFO | [AI] AI-Analyse EURUSD: **WARTEN** – Der Markt befindet sich in einer leichten Abwärtsphase, jedoch ist der RSI nur leicht ü
+2026-02-15 12:42:53,361 | INFO | [USER] KI-Analyse gestartet
+2026-02-15 12:43:04,388 | INFO | [AI] AI-Analyse EURUSD: **SELL** (Kurz‑ bis mittelfristig) – das dominante Bild ist ein fallender Trend mit bestätigtem MACD
+2026-02-15 12:43:16,619 | INFO | [USER] KI-Analyse gestartet
+2026-02-15 12:43:27,527 | INFO | [AI] AI-Analyse EURUSD: **SELL (Kurz‑ bis mittelfristig)**
+2026-02-15 12:43:56,156 | INFO | [USER] Trade-Ausführung angefordert
+2026-02-15 12:43:56,156 | WARNING | [TRADE] Trade abgelehnt - Trading nicht aktiviert
+2026-02-15 12:44:06,115 | INFO | [USER] Positionsübersicht angefordert
+2026-02-15 12:44:06,116 | INFO | [MT5] Positionsdaten abgerufen: 0 Positionen
+2026-02-15 12:44:08,069 | INFO | [USER] Trading-Status wird geändert
+2026-02-15 12:44:08,070 | INFO | [TRADE] Trading-Aktivierung angefordert
+2026-02-15 12:44:09,940 | INFO | [TRADE] Trading erfolgreich aktiviert
+2026-02-15 12:44:16,300 | INFO | [USER] Position Management gestartet
+2026-02-15 12:44:16,301 | INFO | [TRADE] Position Management abgeschlossen
+2026-02-15 12:44:40,500 | INFO | [SYSTEM] FinGPT System wird initialisiert...
+2026-02-15 12:44:40,500 | INFO | [RISK] Risk Manager erfolgreich initialisiert
+2026-02-15 12:44:40,500 | INFO | [INDICATORS] ✅ Erweiterte Indikatoren erfolgreich initialisiert
+2026-02-15 12:44:40,501 | INFO | [RL] ✅ RL Manager erfolgreich initialisiert
+2026-02-15 12:44:40,501 | INFO | [SYSTEM] FinGPT System mit Multi-Timeframe initialisiert
+2026-02-15 12:44:40,501 | INFO | [STATUS] ✅ Risk Manager ist verfügbar
+2026-02-15 12:44:40,501 | INFO | [STATUS] ✅ Erweiterte Indikatoren verfügbar
+2026-02-15 12:44:40,501 | INFO | [STATUS] ✅ RL Trading Agent verfügbar
+2026-02-15 12:48:10,516 | INFO | [SYSTEM] FinGPT System wird initialisiert...
+2026-02-15 12:48:10,516 | INFO | [RISK] Risk Manager erfolgreich initialisiert
+2026-02-15 12:48:10,516 | INFO | [INDICATORS] ✅ Erweiterte Indikatoren erfolgreich initialisiert
+2026-02-15 12:48:10,517 | INFO | [RL] ✅ RL Manager erfolgreich initialisiert
+2026-02-15 12:48:10,517 | INFO | [SYSTEM] FinGPT System mit Multi-Timeframe initialisiert
+2026-02-15 12:48:10,517 | INFO | [STATUS] ✅ Risk Manager ist verfügbar
+2026-02-15 12:48:10,517 | INFO | [STATUS] ✅ Erweiterte Indikatoren verfügbar
+2026-02-15 12:48:10,517 | INFO | [STATUS] ✅ RL Trading Agent verfügbar
+2026-02-15 12:49:15,334 | INFO | [USER] RL Menü aufgerufen
+2026-02-15 13:37:28,845 | INFO | [SYSTEM] FinGPT System wird initialisiert...
+2026-02-15 13:37:28,846 | INFO | [RISK] Risk Manager erfolgreich initialisiert
+2026-02-15 13:37:28,846 | INFO | [INDICATORS] ✅ Erweiterte Indikatoren erfolgreich initialisiert
+2026-02-15 13:37:28,846 | INFO | [RL] ✅ RL Manager erfolgreich initialisiert
+2026-02-15 13:37:28,846 | INFO | [SYSTEM] FinGPT System mit Multi-Timeframe initialisiert
+2026-02-15 13:37:28,846 | INFO | [STATUS] ✅ Risk Manager ist verfügbar
+2026-02-15 13:37:28,847 | INFO | [STATUS] ✅ Erweiterte Indikatoren verfügbar
+2026-02-15 13:37:28,847 | INFO | [STATUS] ✅ RL Trading Agent verfügbar
+2026-02-15 13:38:05,145 | INFO | [SYSTEM] System-Shutdown eingeleitet
+2026-02-15 13:38:05,146 | INFO | [RL] RL System gestoppt
+2026-02-15 13:38:05,147 | INFO | [MT5] MT5 Verbindung wird getrennt
+2026-02-15 13:38:05,147 | INFO | [SYSTEM] System erfolgreich heruntergefahren
+2026-02-15 13:45:19,582 | INFO | [SYSTEM] FinGPT System wird initialisiert...
+2026-02-15 13:45:19,582 | INFO | [RISK] Risk Manager erfolgreich initialisiert
+2026-02-15 13:45:19,583 | INFO | [INDICATORS] ✅ Erweiterte Indikatoren erfolgreich initialisiert
+2026-02-15 13:45:19,583 | INFO | [RL] ✅ RL Manager erfolgreich initialisiert
+2026-02-15 13:45:19,583 | INFO | [SYSTEM] FinGPT System mit Multi-Timeframe initialisiert
+2026-02-15 13:45:19,584 | INFO | [STATUS] ✅ Risk Manager ist verfügbar
+2026-02-15 13:45:19,584 | INFO | [STATUS] ✅ Erweiterte Indikatoren verfügbar
+2026-02-15 13:45:19,584 | INFO | [STATUS] ✅ RL Trading Agent verfügbar
+2026-02-15 13:45:38,657 | INFO | [SYSTEM] System-Shutdown eingeleitet
+2026-02-15 13:45:38,658 | INFO | [RL] RL System gestoppt
+2026-02-15 13:45:38,658 | INFO | [MT5] MT5 Verbindung wird getrennt
+2026-02-15 13:45:38,659 | INFO | [SYSTEM] System erfolgreich heruntergefahren
+2026-02-15 13:51:16,128 | INFO | [SYSTEM] FinGPT System wird initialisiert...
+2026-02-15 13:51:16,128 | INFO | [RISK] Risk Manager erfolgreich initialisiert
+2026-02-15 13:51:16,128 | INFO | [INDICATORS] ✅ Erweiterte Indikatoren erfolgreich initialisiert
+2026-02-15 13:51:16,129 | INFO | [RL] ✅ RL Manager erfolgreich initialisiert
+2026-02-15 13:51:16,129 | INFO | [SYSTEM] FinGPT System mit Multi-Timeframe initialisiert
+2026-02-15 13:51:16,129 | INFO | [STATUS] ✅ Risk Manager ist verfügbar
+2026-02-15 13:51:16,129 | INFO | [STATUS] ✅ Erweiterte Indikatoren verfügbar
+2026-02-15 13:51:16,129 | INFO | [STATUS] ✅ RL Trading Agent verfügbar
+2026-02-15 14:07:46,741 | INFO | [SYSTEM] FinGPT System wird initialisiert...
+2026-02-15 14:07:46,742 | INFO | [RISK] Risk Manager erfolgreich initialisiert
+2026-02-15 14:07:46,742 | INFO | [INDICATORS] ✅ Erweiterte Indikatoren erfolgreich initialisiert
+2026-02-15 14:07:46,743 | INFO | [RL] ✅ RL Manager erfolgreich initialisiert
+2026-02-15 14:07:46,743 | INFO | [SYSTEM] FinGPT System mit Multi-Timeframe initialisiert
+2026-02-15 14:07:46,743 | INFO | [STATUS] ✅ Risk Manager ist verfügbar
+2026-02-15 14:07:46,743 | INFO | [STATUS] ✅ Erweiterte Indikatoren verfügbar
+2026-02-15 14:07:46,743 | INFO | [STATUS] ✅ RL Trading Agent verfügbar
+2026-02-15 14:08:15,664 | INFO | [SYSTEM] FinGPT System wird initialisiert...
+2026-02-15 14:08:15,664 | INFO | [RISK] Risk Manager erfolgreich initialisiert
+2026-02-15 14:08:15,664 | INFO | [INDICATORS] ✅ Erweiterte Indikatoren erfolgreich initialisiert
+2026-02-15 14:08:15,665 | INFO | [RL] ✅ RL Manager erfolgreich initialisiert
+2026-02-15 14:08:15,665 | INFO | [SYSTEM] FinGPT System mit Multi-Timeframe initialisiert
+2026-02-15 14:08:15,665 | INFO | [STATUS] ✅ Risk Manager ist verfügbar
+2026-02-15 14:08:15,666 | INFO | [STATUS] ✅ Erweiterte Indikatoren verfügbar
+2026-02-15 14:08:15,666 | INFO | [STATUS] ✅ RL Trading Agent verfügbar
+2026-02-15 14:08:44,001 | INFO | [USER] Währungspaar Management aufgerufen
+2026-02-15 14:09:12,413 | INFO | [USER] RL Menü aufgerufen
+2026-02-15 14:10:11,904 | INFO | [USER] Signal-Generator mit allen Indikatoren
+2026-02-15 14:10:24,227 | INFO | [USER] Auto-Trading Menü aufgerufen
+2026-02-15 14:10:24,228 | WARNING | [TRADE] Auto-Trading abgelehnt - Trading nicht aktiviert
+2026-02-15 14:10:26,323 | INFO | [USER] Trading-Status wird geändert
+2026-02-15 14:10:26,323 | INFO | [TRADE] Trading-Aktivierung angefordert
+2026-02-15 14:10:27,813 | INFO | [TRADE] Trading erfolgreich aktiviert
+2026-02-15 14:10:29,106 | INFO | [USER] Auto-Trading Menü aufgerufen
+2026-02-15 14:10:29,106 | INFO | [TRADE] Auto-Trading Setup gestartet
+2026-02-15 14:10:42,499 | INFO | [TRADE] Auto-Trading aktiviert mit 1 Paaren
+2026-02-15 14:11:25,011 | INFO | [SYSTEM] FinGPT System wird initialisiert...
+2026-02-15 14:11:25,011 | INFO | [RISK] Risk Manager erfolgreich initialisiert
+2026-02-15 14:11:25,012 | INFO | [INDICATORS] ✅ Erweiterte Indikatoren erfolgreich initialisiert
+2026-02-15 14:11:25,013 | INFO | [RL] ✅ RL Manager erfolgreich initialisiert
+2026-02-15 14:11:25,013 | INFO | [SYSTEM] FinGPT System mit Multi-Timeframe initialisiert
+2026-02-15 14:11:25,013 | INFO | [STATUS] ✅ Risk Manager ist verfügbar
+2026-02-15 14:11:25,013 | INFO | [STATUS] ✅ Erweiterte Indikatoren verfügbar
+2026-02-15 14:11:25,013 | INFO | [STATUS] ✅ RL Trading Agent verfügbar
+2026-02-15 16:03:59,113 | INFO | [SYSTEM] System-Shutdown eingeleitet
+2026-02-15 16:03:59,114 | INFO | [RL] RL System gestoppt
+2026-02-15 16:03:59,114 | INFO | [MT5] MT5 Verbindung wird getrennt
+2026-02-15 16:03:59,115 | INFO | [SYSTEM] System erfolgreich heruntergefahren
+2026-02-15 17:09:20,417 | INFO | [SYSTEM] FinGPT System wird initialisiert...
+2026-02-15 17:09:20,417 | INFO | [RISK] Risk Manager erfolgreich initialisiert
+2026-02-15 17:09:20,417 | INFO | [INDICATORS] ✅ Erweiterte Indikatoren erfolgreich initialisiert
+2026-02-15 17:09:20,418 | INFO | [RL] ✅ RL Manager erfolgreich initialisiert
+2026-02-15 17:09:20,418 | INFO | [SYSTEM] FinGPT System mit Multi-Timeframe initialisiert
+2026-02-15 17:09:20,419 | INFO | [STATUS] ✅ Risk Manager ist verfügbar
+2026-02-15 17:09:20,419 | INFO | [STATUS] ✅ Erweiterte Indikatoren verfügbar
+2026-02-15 17:09:20,419 | INFO | [STATUS] ✅ RL Trading Agent verfügbar
+2026-02-15 17:09:35,950 | INFO | [SYSTEM] System-Shutdown durch Benutzer eingeleitet
+2026-02-15 17:09:35,951 | INFO | [MT5] MT5 Verbindung wird getrennt
+2026-02-15 17:09:35,951 | INFO | [SYSTEM] System erfolgreich heruntergefahren
+2026-02-15 17:09:47,389 | INFO | [SYSTEM] FinGPT System wird initialisiert...
+2026-02-15 17:09:47,390 | INFO | [RISK] Risk Manager erfolgreich initialisiert
+2026-02-15 17:09:47,390 | INFO | [INDICATORS] ✅ Erweiterte Indikatoren erfolgreich initialisiert
+2026-02-15 17:09:47,391 | INFO | [RL] ✅ RL Manager erfolgreich initialisiert
+2026-02-15 17:09:47,391 | INFO | [SYSTEM] FinGPT System mit Multi-Timeframe initialisiert
+2026-02-15 17:09:47,391 | INFO | [STATUS] ✅ Risk Manager ist verfügbar
+2026-02-15 17:09:47,391 | INFO | [STATUS] ✅ Erweiterte Indikatoren verfügbar
+2026-02-15 17:09:47,391 | INFO | [STATUS] ✅ RL Trading Agent verfügbar
+2026-02-15 17:10:00,939 | INFO | [USER] Trailing Stop Einstellungen aufgerufen
+2026-02-15 17:10:16,550 | INFO | [SETTINGS] Trailing Stop Einstellungen beendet
+2026-02-15 17:16:17,171 | INFO | [SYSTEM] FinGPT System wird initialisiert...
+2026-02-15 17:16:17,171 | INFO | [RISK] Risk Manager erfolgreich initialisiert
+2026-02-15 17:16:17,171 | INFO | [INDICATORS] ✅ Erweiterte Indikatoren erfolgreich initialisiert
+2026-02-15 17:16:17,172 | INFO | [RL] ✅ RL Manager erfolgreich initialisiert
+2026-02-15 17:16:17,172 | INFO | [SYSTEM] FinGPT System mit Multi-Timeframe initialisiert
+2026-02-15 17:16:17,172 | INFO | [STATUS] ✅ Risk Manager ist verfügbar
+2026-02-15 17:16:17,172 | INFO | [STATUS] ✅ Erweiterte Indikatoren verfügbar
+2026-02-15 17:16:17,172 | INFO | [STATUS] ✅ RL Trading Agent verfügbar
+2026-02-15 17:17:16,517 | INFO | [USER] Einzelne erweiterte Indikatoren
+2026-02-15 17:17:41,003 | INFO | [USER] RL Menü aufgerufen
+2026-02-15 17:19:26,653 | INFO | [USER] KI-Analyse mit allen Indikatoren
+2026-02-15 17:21:45,225 | INFO | [USER] KI-Analyse gestartet
+2026-02-15 17:21:55,374 | INFO | [AI] AI-Analyse USDJPY: | **1. Hauptsignal** | **BUY** (mit vorsichtigem Risiko‑Management) |
+2026-02-15 17:22:52,219 | INFO | [USER] Partial Close Einstellungen aufgerufen
+2026-02-15 17:23:08,109 | INFO | [USER] Signal-Generator mit allen Indikatoren
+2026-02-15 17:23:36,957 | INFO | [USER] Risk Management Menü aufgerufen
+2026-02-15 17:23:57,103 | INFO | [SYSTEM] System-Shutdown eingeleitet
+2026-02-15 17:23:57,103 | INFO | [RL] RL System gestoppt
+2026-02-15 17:23:57,104 | INFO | [MT5] MT5 Verbindung wird getrennt
+2026-02-15 17:23:57,104 | INFO | [SYSTEM] System erfolgreich heruntergefahren

@@ -1,0 +1,42 @@
+# FinGPT Configuration GUI Requirements
+# Plattformunabhängige Abhängigkeiten für das Konfigurations-Interface
+
+# GUI-Framework (standardmäßig in Python enthalten)
+# tkinter - Standard GUI-Bibliothek (keine Installation nötig)
+
+# HTTP-Anfragen für Ollama-Verbindung
+requests>=2.31.0
+
+# Datenverarbeitung (standardmäßig in Python enthalten)
+# json - JSON-Verarbeitung (keine Installation nötig)
+# pathlib - Pfadverarbeitung (keine Installation nötig)
+# dataclasses - Datenklassen (keine Installation nötig, Python 3.7+)
+# typing - Typ-Hinweise (keine Installation nötig)
+
+# Threading und Parallelverarbeitung (standardmäßig enthalten)
+# threading - Threading (keine Installation nötig)
+# queue - Warteschlangen (keine Installation nötig)
+
+# Datum und Zeit (standardmäßig enthalten)
+# datetime - Datum/Zeit (keine Installation nötig)
+
+# Optional: Erweiterte GUI-Verbesserungen
+# matplotlib>=3.7.0  # Für Diagramme und Visualisierungen
+# pillow>=10.0.0     # Für Bildverarbeitung und Icons
+
+# Optional: Erweiterte Validierung
+# pydantic>=2.0.0    # Für erweiterte Datenvalidierung
+# jsonschema>=4.17.0 # Für JSON-Schema-Validierung
+
+# Optional: Logging und Konfiguration
+# pyyaml>=6.0        # Für YAML-Konfigurationsdateien
+# configparser       # Für INI-Dateien (standardmäßig enthalten)
+
+# Optional: Testing
+# pytest>=7.4.0      # Für Unit-Tests
+# pytest-cov>=4.1.0  # Für Test-Coverage
+
+# Entwicklungswerkzeuge (optional)
+# black>=23.0.0      # Code-Formatierung
+# flake8>=6.0.0      # Code-Linting
+# mypy>=1.5.0        # Statische Typ-Prüfung
