@@ -1,77 +1,115 @@
+# 🤖 FinGPT – KI‑gestütztes Trading‑System für MetaTrader 5
 
+> "Der Markt kann länger irrational bleiben, als du liquide bleiben kannst." – John Maynard Keynes
 
-# 🤖 FinGPT Trading System 
+Ein vollständig lokales, Python‑basiertes Trading‑System, das klassische technische Indikatoren mit großen Sprachmodellen (LLMs) über **Ollama** kombiniert und über die MetaTrader 5‑API (MQL5‑Bridge) ausführt.
 
-# Ollama & MetaTrader5
+## 📌 Überblick
 
-> _"Der Markt kann länger irrational bleiben, als du liquide bleiben kannst."_ 
-John Maynard Keynes
-
-
-Ein vollautomatisches, KI-gestütztes Trading-System für **MetaTrader 5 (MT5)**, entwickelt in **Python**.  
-FinGPT kombiniert klassische Indikatoren (RSI, MACD, Support/Resistance) mit **Ollama LLMs** für smarte Signale, integriert Risk-Management und bietet eine modulare Architektur mit übersichtlichem Menü.
-
-
-![Visual Studio](https://img.shields.io/badge/Visual%20Studio-5C2D91.svg?style=for-the-badge&logo=visual-studio&logoColor=white) ![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54) ![Windows 11](https://img.shields.io/badge/Windows%2011-%230079d5.svg?style=for-the-badge&logo=Windows%2011&logoColor=white)  [![Trello](https://img.shields.io/badge/Trello-%23026AA7.svg?style=for-the-badge&logo=Trello&logoColor=white)](https://trello.com/b/yz7TiJsS/fingpt-all-in-one) ![Discord](https://img.shields.io/badge/Discord-%235865F2.svg?style=for-the-badge&logo=discord&logoColor=white)
-
-
-
-
-
----
-
-## ✨ Features
-
-- **📊 Technische Indikatoren**
-  - RSI (konfigurierbar: Periode, Timeframe, Overbought/Oversold)
-  - MACD (12/26/9 Standard, flexibel einstellbar)
-  - Automatische Support-/Resistance-Erkennung
-  - Multi-Timeframe-Analyse (Trend + Entry Filter)
-
-- **💹 Risk Management**
-  - Dynamische Lot-Berechnung nach Risiko %
-  - Trailing Stops (Start, Abstand, Schrittweite frei konfigurierbar)
-  - Partial Close System (mehrere Gewinnziele, Lot-Reduktion)
-  - Magic Number für klare Trade-Zuordnung
-
-- **🤖 KI-Integration (Ollama)**
-  - Modelle: `fingpt`, `llama3`, `mistral` (Fallback-System)
-  - Signal Parsing (BUY/SELL/HOLD mit Confidence Score)
-  - Kontext: Indikatoren + Chartstruktur
-  - Deutsche Ausgaben + Erklärungen
-
-- **⚙️ Auto-Trading Engine**
-  - Filter-Pipeline: Trend → RSI → MACD → S/R → KI
-  - Automatisches Order-Management mit SL/TP
-  - Symbol-Rotation + Fehler-Isolation (kein Gesamt-Crash)
-  - Konfigurierbare Intervalle (z. B. alle 300 Sekunden)
-
-- **📂 Benutzeroberfläche**
-  - Menü mit 16 Hauptoptionen (Daten, KI-Analyse, Auto-Trading, Indikator-Settings, usw.)
-  - Trading Companion Integration (separates Subprozess-Skript)
-  - Sicherheitsfeatures: Bestätigung für Live/Auto-Trading
-
-- **📝 Logging**
-  - Kategorien: SYSTEM, TRADE, AI, SETTINGS, ERROR, MENU
-  - Ausgaben mit Emojis für bessere Lesbarkeit
-  - Persistente Logfiles: `logs/fingpt_YYYYMMDD.log`
-  - Extra-Funktionen: `log_trade()`, `log_ai_analysis()`, `log_error()`
-
----
+| Feature | Kurzbeschreibung |
+| ------- | ----------------- |
+| **Technische Indikatoren** | RSI, MACD, dynamische Support/Resistance, Multi‑Timeframe‑Analyse |
+| **Risikomanagement** | Lot‑Berechnung nach Risiko‑% → automatischer Lot‑Scaler, Trailing‑Stops, Partial‑Close, Magic‑Number |
+| **KI‑Integration (Ollama)** | Modelle: `fingpt`, `llama3`, `mistral` (Fallback). Analyse von Indikatoren + Chart‑Struktur, Ausgabe in Deutsch inkl. Confidence‑Score |
+| **Auto‑Trading Engine** | Pipeline: Trend → RSI → MACD → S/R → KI → Order‑Platzierung, Symbol‑Rotation, Fehlertoleranz |
+| **CLI‑Menü** | 16‑Punkte‑Menu für Daten, KI‑Analyse, Auto‑Trading, Indikatoren‑Einstellungen, Logging, … |
+| **Logging** | Strukturierte Logs (`SYSTEM`, `TRADE`, `AI`, `ERROR` …) mit Emojis, tägliche Log‑Dateien |
+| **Offline‑First** | Alles läuft **lokal** – keine Cloud‑Abhängigkeiten, nur Ollama & MetaTrader 5. |
 
 ## 🚀 Installation
 
-### Voraussetzungen
-- Python 3.9+
-- MetaTrader 5 (mit aktivem Account – Demo oder Live)
-- [Ollama](https://ollama.ai/) mit passenden LLMs (z. B. Llama 3, Mistral, FinGPT)
-- Pakete:
-  ```bash
-  pip install MetaTrader5 numpy requests
-***
+### 1. System‑Voraussetzungen
+- **Python** ≥ 3.9 (empfohlen 3.11)
+- **MetaTrader 5** (Demo‑ oder Live‑Konto)
+- **Ollama** – Modelle `fingpt`, `llama3`, `mistral` lokal installiert
+- **Git** für das Klonen des Repos
 
+### 2. Repository klonen
+```bash
+git clone https://github.com/EdgarTomas2001/FinGPT-Ollama-.git
+cd FinGPT-Ollama-
+```
 
-<img width="972" height="840" alt="image" src="https://github.com/user-attachments/assets/a41749bc-52f1-4b93-b002-69ef90c0425d" />
-<img width="827" height="911" alt="image" src="https://github.com/user-attachments/assets/c4245e66-2036-4e70-88c2-bf81b4ca85d6" />
-<img width="967" height="571" alt="image" src="https://github.com/user-attachments/assets/bcbfd5bf-0b08-4f25-bd7b-402683ab5a33" />
+### 3. Python‑Abhängigkeiten installieren
+```bash
+python -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+> **Hinweis:** Alle Pakete sind bereits vorkonfiguriert – keine zusätzlichen Installationen nötig.
 
+### 4. Ollama‑Umgebung konfigurieren
+```bash
+ollama pull fingpt
+ollama pull llama3
+ollama pull mistral
+```
+Falls du die Ollama‑API von einem anderen Prozess nutzt, setze:
+```bash
+export OLLAMA_ORIGINS=*   # Linux/macOS
+set OLLAMA_ORIGINS=*      # Windows CMD
+```
+
+### 5. MetaTrader 5‑Verbindung prüfen
+```python
+import MetaTrader5 as mt5
+if not mt5.initialize():
+    print("MT5‑Initialisierung fehlgeschlagen")
+else:
+    print("MT5 erfolgreich verbunden")
+    mt5.shutdown()
+```
+
+### 6. Konfigurationsdatei anlegen (`config.yaml`)
+```yaml
+mt5:
+  login: 12345678
+  password: "dein_passwort"
+  server: "Demo-Server"
+
+ollama:
+  model: "fingpt"
+  endpoint: "http://127.0.0.1:11434/api/generate"
+
+risk:
+  risk_percent: 1.0
+  trailing_stop:
+    start: 20
+    step: 5
+
+paths:
+  logs: "./logs"
+  data: "./data"
+```
+> Passe die Werte nach deinen Bedürfnissen an.
+
+## 📚 Nutzung
+```bash
+python main.py
+```
+Im interaktiven Menü kannst du Daten laden, KI‑Analysen starten, Auto‑Trading aktivieren und Einstellungen ändern. Vor dem Live‑Handel immer im Demo‑Modus testen – das Menü fragt explizit nach einer Bestätigung.
+
+## 🛠️ Weiterentwicklung
+- Modell‑Feintuning mit eigenen Finanz‑Datensätzen
+- Docker‑Support für schnelles Setup
+- Web‑UI (lokal, offline) via Flask + React
+- Back‑Testing‑Modul für historische Simulationen
+- CI/CD mit GitHub‑Actions (nur Lint & Tests, kein automatisches Deploy)
+
+## 🤝 Mitwirken
+1. Fork das Repository
+2. Feature‑Branch erstellen (`git checkout -b feature/mein‑feature`)
+3. Änderungen committen & Pushen
+4. Pull‑Request öffnen – bitte einen kurzen Überblick im PR‑Body geben
+
+*Bitte keine automatischen Pfad‑Ersetzungen im Code einbringen – verwende stattdessen Konfigurations‑Variablen.*
+
+## ⚠️ Disclaimer
+*FinGPT ist ein rein experimentelles, privates Projekt. Das System nutzt automatisierte Handelsentscheidungen und kann zu finanziellen Verlusten führen. Der Autor übernimmt keinerlei Haftung für Verluste, Schäden oder rechtliche Konsequenzen, die aus der Nutzung dieses Codes entstehen. Nutzer sind verpflichtet, das System zunächst in einer sicheren Umgebung (z. B. Demo‑Konto) zu testen und sämtliche regulatorischen Vorgaben sowie Risikomanagement‑Prinzipien eigenständig zu berücksichtigen.*
+
+## 📜 Lizenz
+MIT – du darfst das Projekt frei nutzen, modifizieren und kommerziell einsetzen, solange der Lizenz‑Hinweis erhalten bleibt.
+
+---
+> **Tipp für nächtliche Arbeit:** Starte das Skript in einer `tmux`‑Session, damit du bei Verbindungsabbrüchen das Log weiter verfolgen kannst.
