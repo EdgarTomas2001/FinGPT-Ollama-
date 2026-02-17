@@ -2,6 +2,7 @@
 """
 FinGPT mit Ollama + MetaTrader 5 Integration
 Vollautomatisches Trading mit KI und Partial Close + RSI
+Enhanced Version mit robustem Error Handling und Performance Optimization
 """
 
 import logging
@@ -20,6 +21,24 @@ import signal
 import queue
 warnings.filterwarnings("ignore")
 
+# Enhanced Modules Import
+try:
+    from input_validator import SafeInput, InputValidator, ValidationResult
+    from exception_handler import (
+        FinGPTError, MT5ConnectionError, OllamaConnectionError, TradingError,
+        RiskManagementError, ValidationError, ConfigurationError, DataError,
+        ErrorHandler, ErrorSeverity, safe_execute, retry_on_exception, CircuitBreaker,
+        global_error_handler, safe_execute_with_default
+    )
+    from performance_optimizer import (
+        PerformanceMetrics, PerformanceMonitor, performance_monitor, cached,
+        rate_limited, ResourceLimiter, global_metrics, global_monitor
+    )
+    ENHANCED_MODULES_AVAILABLE = True
+except ImportError as e:
+    print(f"⚠️ Enhanced modules nicht verfügbar: {e}")
+    ENHANCED_MODULES_AVAILABLE = False
+
 # MetaTrader 5 Import
 try:
     import MetaTrader5 as mt5
@@ -37,7 +56,7 @@ from advanced_indicators import AdvancedIndicators, IndicatorIntegration
 
 class MT5FinGPT:
     def __init__(self):
-        """Initialisiert das FinGPT System mit korrekter Reihenfolge"""
+        """Initialisiert das FinGPT System mit korrekter Reihenfolge und Enhanced Features"""
     
         # GRUNDLEGENDE EINSTELLUNGEN ZUERST
         self.ollama_url = "http://localhost:11434"
@@ -50,10 +69,23 @@ class MT5FinGPT:
         self.auto_trading = False
         self.auto_trade_symbols = ["EURUSD"]
         self.analysis_interval = 300
+        
+        # ENHANCED FEATURES INITIALIZATION
+        self.enhanced_mode = ENHANCED_MODULES_AVAILABLE
+        if self.enhanced_mode:
+            self.error_handler = ErrorHandler(self.logger if hasattr(self, 'logger') else None)
+            self.resource_limiter = ResourceLimiter(max_concurrent=5, rate_limit=2.0)
+            self.performance_metrics = global_metrics
+            self.log("INFO", "✅ Enhanced Features aktiviert", "SYSTEM")
+        else:
+            self.error_handler = None
+            self.resource_limiter = None
+            self.performance_metrics = None
+            self.log("INFO", "⚠️ Enhanced Features nicht verfügbar", "SYSTEM")
     
         # LOGGING SETUP - MUSS ZUERST KOMMEN!
         self.setup_logging()
-        self.log("INFO", "FinGPT System wird initialisiert...")
+        self.log("INFO", "FinGPT Enhanced System wird initialisiert...")
     
         # RISK MANAGER - NACH LOGGING!
         try:
@@ -64,7 +96,10 @@ class MT5FinGPT:
             self.log("ERROR", f"Risk Manager Import Fehler: {e}", "RISK")
             self.risk_manager = None
         except Exception as e:
-            self.log("ERROR", f"Risk Manager Initialisierung Fehler: {e}", "RISK")
+            error_msg = f"Risk Manager Initialisierung Fehler: {e}"
+            self.log("ERROR", error_msg, "RISK")
+            if self.enhanced_mode and self.error_handler:
+                self.error_handler.handle_exception(e, "risk_manager_init", ErrorSeverity.HIGH)
             self.risk_manager = None
     
         # ERWEITERTE INDIKATOREN - NACH LOGGING!
@@ -744,7 +779,10 @@ class MT5FinGPT:
         if choice == "1":
             self.log("INFO", "Live-Daten Abfrage gestartet", "USER")
             self.print_header("LIVE MARKTDATEN")
-            symbol = input("Symbol eingeben: ").upper()
+            if self.enhanced_mode:
+                symbol = SafeInput.get_symbol("Symbol eingeben: ")
+            else:
+                symbol = input("Symbol eingeben: ").upper()
             if symbol:
                 self.log("INFO", f"Marktdaten abgerufen für {symbol}", "MT5")
                 data = self.get_mt5_live_data(symbol)
@@ -755,7 +793,10 @@ class MT5FinGPT:
         elif choice == "2":
             self.log("INFO", "KI-Analyse gestartet", "USER")
             self.print_header("KI-ANALYSE")
-            symbol = input("Symbol für Analyse: ").upper()
+            if self.enhanced_mode:
+                symbol = SafeInput.get_symbol("Symbol für Analyse: ")
+            else:
+                symbol = input("Symbol für Analyse: ").upper()
             if symbol:
                 print(f"\n🔄 Analysiere {symbol}...")
                 print("─" * 50)
@@ -811,8 +852,12 @@ class MT5FinGPT:
                 self.log("WARNING", "Trade abgelehnt - Trading nicht aktiviert", "TRADE")
                 print("Trading nicht aktiviert!")
             else:
-                symbol = input("Symbol: ").upper()
-                action = input("Aktion (BUY/SELL): ").upper()
+                if self.enhanced_mode:
+                    symbol = SafeInput.get_symbol("Symbol: ")
+                    action = SafeInput.get_action("Aktion (BUY/SELL): ")
+                else:
+                    symbol = input("Symbol: ").upper()
+                    action = input("Aktion (BUY/SELL): ").upper()
                 if symbol and action in ["BUY", "SELL"]:
                     self.log("INFO", f"Trade wird ausgeführt: {action} {symbol}", "TRADE")
                     result = self.execute_trade(symbol, action)
@@ -5037,7 +5082,16 @@ class MT5FinGPT:
                 print("Keine Account-Info")
                 return False
             
+            # AutoTrading Status prüfen
+            terminal_info = mt5.terminal_info()
+            if terminal_info and not terminal_info.trade_allowed:
+                print("❌ AutoTrading in MetaTrader 5 deaktiviert!")
+                print("   Bitte in MT5 den AutoTrading Knopf aktivieren (Ctrl+E)")
+                return False
+            
             print(f"MT5 verbunden: {account_info.company}")
+            if terminal_info:
+                print(f"✅ AutoTrading Status: {'Aktiv' if terminal_info.trade_allowed else 'Inaktiv'}")
             self.mt5_connected = True
             return True
             
